@@ -1,51 +1,46 @@
-use crate::normalize;
-use crate::{DayType, DiffType, Fields, MonthType, YearType};
+use crate::fields::Fields;
+use crate::{DayType, DiffType, MonthType, YearType};
 
-pub(crate) trait Granularity {
+// TODO(evenyag): Use trait once rust supports declaring const functions in trait.
+// See issue #57563 <https://github.com/rust-lang/rust/issues/57563>
+
+/// Second granularity.
+pub(crate) struct Second;
+
+impl Second {
     /// Increments the indicated (normalized) field by "n".
-    fn step(f: Fields, n: DiffType) -> Fields;
-
-    /// Returns the difference between fields structs using the indicated unit.
-    fn difference(f1: Fields, f2: Fields) -> DiffType;
-
-    /// Aligns the (normalized) fields struct to the indicated field.
-    fn align(f: Fields) -> Fields;
-}
-
-struct Second;
-struct Minute;
-struct Hour;
-struct Day;
-struct Month;
-struct Year;
-
-impl Granularity for Second {
-    fn step(f: Fields, n: DiffType) -> Fields {
-        normalize::n_sec(
+    pub(crate) const fn step(f: Fields, n: DiffType) -> Fields {
+        Fields::n_sec(
             f.y,
-            f.m.into(),
-            f.d.into(),
-            f.hh.into(),
+            f.m as DiffType,
+            f.d as DiffType,
+            f.hh as DiffType,
             f.mm as DiffType + n / 60,
             f.ss as DiffType + n % 60,
         )
     }
 
-    fn difference(f1: Fields, f2: Fields) -> DiffType {
-        scale_add(Minute::difference(f1, f2), 60, (f1.ss - f2.ss).into())
+    /// Returns the difference between fields structs using the indicated unit.
+    pub(crate) const fn difference(f1: Fields, f2: Fields) -> DiffType {
+        scale_add(Minute::difference(f1, f2), 60, (f1.ss - f2.ss) as DiffType)
     }
 
-    fn align(f: Fields) -> Fields {
+    /// Aligns the (normalized) fields struct to the indicated field.
+    pub(crate) const fn align(f: Fields) -> Fields {
         f
     }
 }
 
-impl Granularity for Minute {
-    fn step(f: Fields, n: DiffType) -> Fields {
-        normalize::n_min(
+/// Minute granularity.
+pub(crate) struct Minute;
+
+impl Minute {
+    /// Increments the indicated (normalized) field by "n".
+    pub(crate) const fn step(f: Fields, n: DiffType) -> Fields {
+        Fields::n_min(
             f.y,
-            f.m.into(),
-            f.d.into(),
+            f.m as DiffType,
+            f.d as DiffType,
             f.hh as DiffType + n / 60,
             0,
             f.mm as DiffType + n % 60,
@@ -53,11 +48,13 @@ impl Granularity for Minute {
         )
     }
 
-    fn difference(f1: Fields, f2: Fields) -> DiffType {
-        scale_add(Hour::difference(f1, f2), 60, (f1.mm - f2.mm).into())
+    /// Returns the difference between fields structs using the indicated unit.
+    pub(crate) const fn difference(f1: Fields, f2: Fields) -> DiffType {
+        scale_add(Hour::difference(f1, f2), 60, (f1.mm - f2.mm) as DiffType)
     }
 
-    fn align(f: Fields) -> Fields {
+    /// Aligns the (normalized) fields struct to the indicated field.
+    pub(crate) const fn align(f: Fields) -> Fields {
         Fields {
             y: f.y,
             m: f.m,
@@ -69,11 +66,15 @@ impl Granularity for Minute {
     }
 }
 
-impl Granularity for Hour {
-    fn step(f: Fields, n: DiffType) -> Fields {
-        normalize::n_hour(
+/// Hour granularity.
+pub(crate) struct Hour;
+
+impl Hour {
+    /// Increments the indicated (normalized) field by "n".
+    pub(crate) const fn step(f: Fields, n: DiffType) -> Fields {
+        Fields::n_hour(
             f.y,
-            f.m.into(),
+            f.m as DiffType,
             f.d as DiffType + n / 24,
             0,
             f.hh as DiffType + n % 24,
@@ -82,11 +83,13 @@ impl Granularity for Hour {
         )
     }
 
-    fn difference(f1: Fields, f2: Fields) -> DiffType {
-        scale_add(Day::difference(f1, f2), 24, (f1.hh - f2.hh).into())
+    /// Returns the difference between fields structs using the indicated unit.
+    pub(crate) const fn difference(f1: Fields, f2: Fields) -> DiffType {
+        scale_add(Day::difference(f1, f2), 24, (f1.hh - f2.hh) as DiffType)
     }
 
-    fn align(f: Fields) -> Fields {
+    /// Aligns the (normalized) fields struct to the indicated field.
+    pub(crate) const fn align(f: Fields) -> Fields {
         Fields {
             y: f.y,
             m: f.m,
@@ -98,16 +101,22 @@ impl Granularity for Hour {
     }
 }
 
-impl Granularity for Day {
-    fn step(f: Fields, n: DiffType) -> Fields {
-        normalize::n_day(f.y, f.m, f.d.into(), n, f.hh, f.mm, f.ss)
+/// Day granularity.
+pub(crate) struct Day;
+
+impl Day {
+    /// Increments the indicated (normalized) field by "n".
+    pub(crate) const fn step(f: Fields, n: DiffType) -> Fields {
+        Fields::n_day(f.y, f.m, f.d as DiffType, n, f.hh, f.mm, f.ss)
     }
 
-    fn difference(f1: Fields, f2: Fields) -> DiffType {
+    /// Returns the difference between fields structs using the indicated unit.
+    pub(crate) const fn difference(f1: Fields, f2: Fields) -> DiffType {
         day_difference(f1.y, f1.m, f1.d, f2.y, f2.m, f2.d)
     }
 
-    fn align(f: Fields) -> Fields {
+    /// Aligns the (normalized) fields struct to the indicated field.
+    pub(crate) const fn align(f: Fields) -> Fields {
         Fields {
             y: f.y,
             m: f.m,
@@ -119,12 +128,16 @@ impl Granularity for Day {
     }
 }
 
-impl Granularity for Month {
-    fn step(f: Fields, n: DiffType) -> Fields {
-        normalize::n_mon(
+/// Month granularity.
+pub(crate) struct Month;
+
+impl Month {
+    /// Increments the indicated (normalized) field by "n".
+    pub(crate) const fn step(f: Fields, n: DiffType) -> Fields {
+        Fields::n_mon(
             f.y + n / 12,
             f.m as DiffType + n % 12,
-            f.d.into(),
+            f.d as DiffType,
             0,
             f.hh,
             f.mm,
@@ -132,11 +145,13 @@ impl Granularity for Month {
         )
     }
 
-    fn difference(f1: Fields, f2: Fields) -> DiffType {
-        scale_add(Year::difference(f1, f2), 12, (f1.m - f2.m).into())
+    /// Returns the difference between fields structs using the indicated unit.
+    pub(crate) const fn difference(f1: Fields, f2: Fields) -> DiffType {
+        scale_add(Year::difference(f1, f2), 12, (f1.m - f2.m) as DiffType)
     }
 
-    fn align(f: Fields) -> Fields {
+    /// Aligns the (normalized) fields struct to the indicated field.
+    pub(crate) const fn align(f: Fields) -> Fields {
         Fields {
             y: f.y,
             m: f.m,
@@ -148,17 +163,23 @@ impl Granularity for Month {
     }
 }
 
-impl Granularity for Year {
-    fn step(mut f: Fields, n: DiffType) -> Fields {
+/// Year granularity.
+pub(crate) struct Year;
+
+impl Year {
+    /// Increments the indicated (normalized) field by "n".
+    pub(crate) const fn step(mut f: Fields, n: DiffType) -> Fields {
         f.y += n;
         f
     }
 
-    fn difference(f1: Fields, f2: Fields) -> DiffType {
+    /// Returns the difference between fields structs using the indicated unit.
+    pub(crate) const fn difference(f1: Fields, f2: Fields) -> DiffType {
         f1.y - f2.y
     }
 
-    fn align(f: Fields) -> Fields {
+    /// Aligns the (normalized) fields struct to the indicated field.
+    pub(crate) const fn align(f: Fields) -> Fields {
         Fields {
             y: f.y,
             m: 1,

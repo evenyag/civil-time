@@ -1,9 +1,9 @@
+use crate::fields::Fields;
+use crate::granularity::{Day, Hour, Minute, Month, Second, Year};
 use std::marker::PhantomData;
 
+mod fields;
 mod granularity;
-mod normalize;
-
-use granularity::Granularity;
 
 /// Support years that at least span the range of 64-bit time_t values.
 type YearType = i64;
@@ -23,36 +23,69 @@ type MinuteType = i8;
 /// Normalized second [0:59].
 type SecondType = i8;
 
-/// Normalized civil-time fields: Y-M-D HH:MM:SS.
-#[derive(Clone, Copy)]
-struct Fields {
-    y: YearType,
-    m: MonthType,
-    d: DayType,
-    hh: HourType,
-    mm: MinuteType,
-    ss: SecondType,
+pub struct CivilYear(Fields);
+
+impl CivilYear {
+    pub const fn new(y: YearType) -> Self {
+        let fields = Fields::n_sec(y, 1, 1, 0, 0, 0);
+
+        CivilYear(Year::align(fields))
+    }
 }
 
-struct CivilTime<T> {
-    f: Fields,
-    tag: PhantomData<T>,
+pub struct CivilMonth(Fields);
+
+impl CivilMonth {
+    pub const fn new(y: YearType, m: DiffType) -> Self {
+        let fields = Fields::n_sec(y, m, 1, 0, 0, 0);
+
+        CivilMonth(Month::align(fields))
+    }
 }
 
-impl<T: Granularity> CivilTime<T> {
-    fn new(
+pub struct CivilDay(Fields);
+
+impl CivilDay {
+    pub const fn new(y: YearType, m: DiffType, d: DiffType) -> Self {
+        let fields = Fields::n_sec(y, m, d, 0, 0, 0);
+
+        CivilDay(Day::align(fields))
+    }
+}
+
+pub struct CivilHour(Fields);
+
+impl CivilHour {
+    pub const fn new(y: YearType, m: DiffType, d: DiffType, hh: DiffType) -> Self {
+        let fields = Fields::n_sec(y, m, d, hh, 0, 0);
+
+        CivilHour(Hour::align(fields))
+    }
+}
+
+pub struct CivilMinute(Fields);
+
+impl CivilMinute {
+    pub const fn new(y: YearType, m: DiffType, d: DiffType, hh: DiffType, mm: DiffType) -> Self {
+        let fields = Fields::n_sec(y, m, d, hh, mm, 0);
+
+        CivilMinute(Minute::align(fields))
+    }
+}
+
+pub struct CivilSecond(Fields);
+
+impl CivilSecond {
+    pub const fn new(
         y: YearType,
         m: DiffType,
         d: DiffType,
         hh: DiffType,
         mm: DiffType,
         ss: DiffType,
-    ) -> CivilTime<T> {
-        let fields = normalize::n_sec(y, m, d, hh, mm, ss);
+    ) -> Self {
+        let fields = Fields::n_sec(y, m, d, hh, mm, ss);
 
-        CivilTime {
-            f: T::align(fields),
-            tag: PhantomData,
-        }
+        CivilSecond(Second::align(fields))
     }
 }
