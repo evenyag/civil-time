@@ -1,10 +1,11 @@
 //! Weekday
 
-use crate::{CivilSecond, YearType, CivilDay};
+use crate::fields;
+use crate::{CivilDay, CivilSecond, DiffType, YearType};
 
 /// The day of week.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Weekday {
+pub enum Weekday {
     /// Monday.
     Mon,
     /// Tuesday.
@@ -22,7 +23,7 @@ enum Weekday {
 }
 
 impl Weekday {
-    const fn from_civil_second(cs: CivilSecond) -> Self {
+    pub const fn from_civil_second(cs: CivilSecond) -> Self {
         const WEEKDAY_BY_MON_OFF: [Weekday; 13] = [
             Weekday::Mon,
             Weekday::Tue,
@@ -47,4 +48,85 @@ impl Weekday {
 
         WEEKDAY_BY_MON_OFF[index]
     }
+
+    const fn const_eq(&self, other: Weekday) -> bool {
+        // Can't call PartialEq/Eq in const function.
+        *self as usize == other as usize
+    }
+}
+
+pub const fn next_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
+    const WEEKDAYS_FORW: [Weekday; 14] = [
+        Weekday::Mon,
+        Weekday::Tue,
+        Weekday::Wed,
+        Weekday::Thu,
+        Weekday::Fri,
+        Weekday::Sat,
+        Weekday::Sun,
+        Weekday::Mon,
+        Weekday::Tue,
+        Weekday::Wed,
+        Weekday::Thu,
+        Weekday::Fri,
+        Weekday::Sat,
+        Weekday::Sun,
+    ];
+    let base = Weekday::from_civil_second(CivilSecond::from_civil_day(cd));
+    let mut i = 0;
+    loop {
+        if base.const_eq(WEEKDAYS_FORW[i]) {
+            let mut j = i + 1;
+            loop {
+                if wd.const_eq(WEEKDAYS_FORW[j]) {
+                    return cd.const_add((j - i) as DiffType);
+                }
+                j += 1;
+            }
+        }
+        i += 1;
+    }
+}
+
+pub const fn prev_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
+    const WEEKDAYS_BACK: [Weekday; 14] = [
+        Weekday::Sun,
+        Weekday::Sat,
+        Weekday::Fri,
+        Weekday::Thu,
+        Weekday::Wed,
+        Weekday::Tue,
+        Weekday::Mon,
+        Weekday::Sun,
+        Weekday::Sat,
+        Weekday::Fri,
+        Weekday::Thu,
+        Weekday::Wed,
+        Weekday::Tue,
+        Weekday::Mon,
+    ];
+    let base = Weekday::from_civil_second(CivilSecond::from_civil_day(cd));
+    let mut i = 0;
+    loop {
+        if base.const_eq(WEEKDAYS_BACK[i]) {
+            let mut j = i + 1;
+            loop {
+                if wd.const_eq(WEEKDAYS_BACK[j]) {
+                    return cd.const_sub((j - i) as DiffType);
+                }
+                j += 1;
+            }
+        }
+        i += 1;
+    }
+}
+
+const fn get_yearday(cs: CivilSecond) -> i32 {
+    const MONTH_OFFSETS: [i32; 13] = [-1, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    let feb29 = if cs.month() > 2 && fields::is_leap_year(cs.year()) {
+        1
+    } else {
+        0
+    };
+    MONTH_OFFSETS[cs.month() as usize] + feb29 + cs.day()
 }

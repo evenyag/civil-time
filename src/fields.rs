@@ -2,7 +2,7 @@
 
 use crate::{DayType, DiffType, HourType, MinuteType, MonthType, SecondType, YearType};
 
-const fn is_leap_year(y: YearType) -> bool {
+pub(crate) const fn is_leap_year(y: YearType) -> bool {
     y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)
 }
 
@@ -48,7 +48,7 @@ const fn days_per_month(y: YearType, m: MonthType) -> i64 {
 }
 
 /// Normalized civil-time fields: Y-M-D HH:MM:SS.
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Fields {
     pub y: YearType,
     pub m: MonthType,

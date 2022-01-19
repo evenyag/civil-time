@@ -24,6 +24,7 @@ type MinuteType = i8;
 /// Normalized second [0:59].
 type SecondType = i8;
 
+#[derive(Debug, Clone, Copy)]
 pub struct CivilYear(Fields);
 
 impl CivilYear {
@@ -38,6 +39,7 @@ impl CivilYear {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct CivilMonth(Fields);
 
 impl CivilMonth {
@@ -52,6 +54,7 @@ impl CivilMonth {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct CivilDay(Fields);
 
 impl CivilDay {
@@ -64,8 +67,25 @@ impl CivilDay {
     const fn from_fields(fields: Fields) -> Self {
         CivilDay(Day::align(fields))
     }
+
+    const fn const_add(self, n: DiffType) -> Self {
+        let fields = Day::step(self.0, n);
+
+        Self::from_fields(fields)
+    }
+
+    const fn const_sub(self, n: DiffType) -> Self {
+        let fields = if n != DiffType::MIN {
+            Day::step(self.0, -n)
+        } else {
+            Day::step(Day::step(self.0, -(n + 1)), 1)
+        };
+
+        Self::from_fields(fields)
+    }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct CivilHour(Fields);
 
 impl CivilHour {
@@ -80,6 +100,7 @@ impl CivilHour {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct CivilMinute(Fields);
 
 impl CivilMinute {
@@ -94,6 +115,7 @@ impl CivilMinute {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct CivilSecond(Fields);
 
 // TODO(evenyag): Maybe we can construct different civil time via a generic builder, which
@@ -114,6 +136,10 @@ impl CivilSecond {
 
     const fn from_fields(fields: Fields) -> Self {
         CivilSecond(Second::align(fields))
+    }
+
+    const fn from_civil_day(cd: CivilDay) -> Self {
+        CivilSecond::from_fields(cd.0)
     }
 
     const fn year(&self) -> YearType {
@@ -141,7 +167,7 @@ impl CivilSecond {
     }
 }
 
-// TODO(evenyag): implement Add<Into<DiffType>> for CivilSecond.
+// TODO(evenyag): 1. Implement Add<Into<DiffType>> for CivilSecond; 2. Provide a const add/sub function.
 impl Add<DiffType> for CivilSecond {
     type Output = Self;
 
