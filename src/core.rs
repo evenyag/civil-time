@@ -100,16 +100,14 @@ impl Fields {
                 ey += 400;
                 d -= 146097;
             }
+        } else if d > -365 {
+            // We often hit the previous year when stepping a civil time backwards,
+            // so special case it to avoid counting up by 100/4/1-year chunks.
+            ey -= 1;
+            d += days_per_year(ey, m);
         } else {
-            if d > -365 {
-                // We often hit the previous year when stepping a civil time backwards,
-                // so special case it to avoid counting up by 100/4/1-year chunks.
-                ey -= 1;
-                d += days_per_year(ey, m);
-            } else {
-                ey -= 400;
-                d += 146097;
-            }
+            ey -= 400;
+            d += 146097;
         }
 
         if d > 365 {
@@ -237,6 +235,7 @@ impl Fields {
         )
     }
 
+    #[allow(clippy::manual_range_contains)]
     pub const fn n_sec(
         y: YearType,
         m: DiffType,
