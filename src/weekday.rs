@@ -1,6 +1,5 @@
-//! Weekday
+//! Weekday and related utilities.
 
-use crate::fields;
 use crate::{CivilDay, CivilSecond, DiffType, YearType};
 
 /// The day of week.
@@ -79,7 +78,7 @@ pub const fn next_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
             let mut j = i + 1;
             loop {
                 if wd.const_eq(WEEKDAYS_FORW[j]) {
-                    return cd.const_add((j - i) as DiffType);
+                    return cd.const_add_offset((j - i) as DiffType);
                 }
                 j += 1;
             }
@@ -112,21 +111,11 @@ pub const fn prev_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
             let mut j = i + 1;
             loop {
                 if wd.const_eq(WEEKDAYS_BACK[j]) {
-                    return cd.const_sub((j - i) as DiffType);
+                    return cd.const_sub_offset((j - i) as DiffType);
                 }
                 j += 1;
             }
         }
         i += 1;
     }
-}
-
-const fn get_yearday(cs: CivilSecond) -> i32 {
-    const MONTH_OFFSETS: [i32; 13] = [-1, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-    let feb29 = if cs.month() > 2 && fields::is_leap_year(cs.year()) {
-        1
-    } else {
-        0
-    };
-    MONTH_OFFSETS[cs.month() as usize] + feb29 + cs.day()
 }

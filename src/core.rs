@@ -1,6 +1,21 @@
-//! Field normalization (without avoidable overflow).
+//! Core types, functions and field normalization (without avoidable overflow).
 
-use crate::{DayType, DiffType, HourType, MinuteType, MonthType, SecondType, YearType};
+/// Support years that at least span the range of 64-bit time_t values.
+pub type YearType = i64;
+/// Type alias that indicates an argument is not normalized (e.g., the
+/// constructor parameters and operands/results of addition/subtraction).
+pub type DiffType = i64;
+// Type aliases that indicate normalized argument values.
+/// Normalized month [1:12].
+pub(crate) type MonthType = i8;
+/// Normalized day [1:31].
+pub(crate) type DayType = i8;
+/// Normalized hour [0:23].
+pub(crate) type HourType = i8;
+/// Normalized minute [0:59].
+pub(crate) type MinuteType = i8;
+/// Normalized second [0:59].
+pub(crate) type SecondType = i8;
 
 pub(crate) const fn is_leap_year(y: YearType) -> bool {
     y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)

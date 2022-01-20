@@ -1,5 +1,7 @@
-use crate::fields::Fields;
-use crate::{DayType, DiffType, MonthType, YearType};
+//! Different granualrities.
+
+use crate::core::{DayType, DiffType, Fields, MonthType};
+use crate::YearType;
 
 // TODO(evenyag): Use trait once rust supports declaring const functions in trait.
 // See issue #57563 <https://github.com/rust-lang/rust/issues/57563>

@@ -1,118 +1,90 @@
-use crate::fields::Fields;
+use crate::core::Fields;
 use crate::granularity::{Day, Hour, Minute, Month, Second, Year};
 use std::ops::{Add, Sub};
 
-mod fields;
+mod core;
 mod granularity;
 mod weekday;
 
-/// Support years that at least span the range of 64-bit time_t values.
-type YearType = i64;
-/// Type alias that indicates an argument is not normalized (e.g., the
-/// constructor parameters and operands/results of addition/subtraction).
-type DiffType = i64;
+pub use crate::core::{DiffType, YearType};
+pub use crate::weekday::{next_weekday, prev_weekday, Weekday};
 
-// Type aliases that indicate normalized argument values.
-/// Normalized month [1:12].
-type MonthType = i8;
-/// Normalized day [1:31].
-type DayType = i8;
-/// Normalized hour [0:23].
-type HourType = i8;
-/// Normalized minute [0:59].
-type MinuteType = i8;
-/// Normalized second [0:59].
-type SecondType = i8;
+macro_rules! impl_civil_time_type {
+    ($Type: ident, $Granularity: ident) => {
+        impl $Type {
+            const fn from_fields(fields: Fields) -> Self {
+                $Type($Granularity::align(fields))
+            }
 
-#[derive(Debug, Clone, Copy)]
-pub struct CivilYear(Fields);
+            pub const fn year(&self) -> YearType {
+                self.0.y
+            }
 
-impl CivilYear {
-    pub const fn new(y: YearType) -> Self {
-        let fields = Fields::n_sec(y, 1, 1, 0, 0, 0);
+            pub const fn month(&self) -> i32 {
+                self.0.m as i32
+            }
 
-        Self::from_fields(fields)
-    }
+            pub const fn day(&self) -> i32 {
+                self.0.d as i32
+            }
 
-    const fn from_fields(fields: Fields) -> Self {
-        CivilYear(Year::align(fields))
-    }
-}
+            pub const fn hour(&self) -> i32 {
+                self.0.hh as i32
+            }
 
-#[derive(Debug, Clone, Copy)]
-pub struct CivilMonth(Fields);
+            pub const fn minute(&self) -> i32 {
+                self.0.mm as i32
+            }
 
-impl CivilMonth {
-    pub const fn new(y: YearType, m: DiffType) -> Self {
-        let fields = Fields::n_sec(y, m, 1, 0, 0, 0);
+            pub const fn second(&self) -> i32 {
+                self.0.ss as i32
+            }
 
-        Self::from_fields(fields)
-    }
+            pub const fn const_add_offset(self, n: DiffType) -> Self {
+                let fields = $Granularity::step(self.0, n);
 
-    const fn from_fields(fields: Fields) -> Self {
-        CivilMonth(Month::align(fields))
-    }
-}
+                Self::from_fields(fields)
+            }
 
-#[derive(Debug, Clone, Copy)]
-pub struct CivilDay(Fields);
+            pub const fn const_sub_offset(self, n: DiffType) -> Self {
+                let fields = if n != DiffType::MIN {
+                    $Granularity::step(self.0, -n)
+                } else {
+                    $Granularity::step($Granularity::step(self.0, -(n + 1)), 1)
+                };
 
-impl CivilDay {
-    pub const fn new(y: YearType, m: DiffType, d: DiffType) -> Self {
-        let fields = Fields::n_sec(y, m, d, 0, 0, 0);
+                Self::from_fields(fields)
+            }
 
-        Self::from_fields(fields)
-    }
+            pub const fn const_difference(self, other: Self) -> DiffType {
+                $Granularity::difference(self.0, other.0)
+            }
+        }
 
-    const fn from_fields(fields: Fields) -> Self {
-        CivilDay(Day::align(fields))
-    }
+        impl Add<DiffType> for $Type {
+            type Output = Self;
 
-    const fn const_add(self, n: DiffType) -> Self {
-        let fields = Day::step(self.0, n);
+            fn add(self, n: DiffType) -> Self::Output {
+                self.const_add_offset(n)
+            }
+        }
 
-        Self::from_fields(fields)
-    }
+        impl Sub<DiffType> for $Type {
+            type Output = Self;
 
-    const fn const_sub(self, n: DiffType) -> Self {
-        let fields = if n != DiffType::MIN {
-            Day::step(self.0, -n)
-        } else {
-            Day::step(Day::step(self.0, -(n + 1)), 1)
-        };
+            fn sub(self, n: DiffType) -> Self::Output {
+                self.const_sub_offset(n)
+            }
+        }
 
-        Self::from_fields(fields)
-    }
-}
+        impl Sub for $Type {
+            type Output = DiffType;
 
-#[derive(Debug, Clone, Copy)]
-pub struct CivilHour(Fields);
-
-impl CivilHour {
-    pub const fn new(y: YearType, m: DiffType, d: DiffType, hh: DiffType) -> Self {
-        let fields = Fields::n_sec(y, m, d, hh, 0, 0);
-
-        Self::from_fields(fields)
-    }
-
-    const fn from_fields(fields: Fields) -> Self {
-        CivilHour(Hour::align(fields))
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct CivilMinute(Fields);
-
-impl CivilMinute {
-    pub const fn new(y: YearType, m: DiffType, d: DiffType, hh: DiffType, mm: DiffType) -> Self {
-        let fields = Fields::n_sec(y, m, d, hh, mm, 0);
-
-        Self::from_fields(fields)
-    }
-
-    const fn from_fields(fields: Fields) -> Self {
-        CivilMinute(Minute::align(fields))
-    }
+            fn sub(self, rhs: Self) -> Self::Output {
+                self.const_difference(rhs)
+            }
+        }
+    };
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -134,68 +106,79 @@ impl CivilSecond {
         Self::from_fields(fields)
     }
 
-    const fn from_fields(fields: Fields) -> Self {
-        CivilSecond(Second::align(fields))
-    }
-
     const fn from_civil_day(cd: CivilDay) -> Self {
         CivilSecond::from_fields(cd.0)
     }
-
-    const fn year(&self) -> YearType {
-        self.0.y
-    }
-
-    const fn month(&self) -> i32 {
-        self.0.m as i32
-    }
-
-    const fn day(&self) -> i32 {
-        self.0.d as i32
-    }
-
-    const fn hour(&self) -> i32 {
-        self.0.hh as i32
-    }
-
-    const fn minute(&self) -> i32 {
-        self.0.mm as i32
-    }
-
-    const fn second(&self) -> i32 {
-        self.0.ss as i32
-    }
 }
 
-// TODO(evenyag): 1. Implement Add<Into<DiffType>> for CivilSecond; 2. Provide a const add/sub function.
-impl Add<DiffType> for CivilSecond {
-    type Output = Self;
+#[derive(Debug, Clone, Copy)]
+pub struct CivilMinute(Fields);
 
-    fn add(self, n: DiffType) -> Self::Output {
-        let fields = Second::step(self.0, n);
+impl CivilMinute {
+    pub const fn new(y: YearType, m: DiffType, d: DiffType, hh: DiffType, mm: DiffType) -> Self {
+        let fields = Fields::n_sec(y, m, d, hh, mm, 0);
 
         Self::from_fields(fields)
     }
 }
 
-impl Sub<DiffType> for CivilSecond {
-    type Output = Self;
+#[derive(Debug, Clone, Copy)]
+pub struct CivilHour(Fields);
 
-    fn sub(self, n: DiffType) -> Self::Output {
-        let fields = if n != DiffType::MIN {
-            Second::step(self.0, -n)
-        } else {
-            Second::step(Second::step(self.0, -(n + 1)), 1)
-        };
+impl CivilHour {
+    pub const fn new(y: YearType, m: DiffType, d: DiffType, hh: DiffType) -> Self {
+        let fields = Fields::n_sec(y, m, d, hh, 0, 0);
 
         Self::from_fields(fields)
     }
 }
 
-impl Sub for CivilSecond {
-    type Output = DiffType;
+#[derive(Debug, Clone, Copy)]
+pub struct CivilDay(Fields);
 
-    fn sub(self, rhs: Self) -> Self::Output {
-        Second::difference(self.0, rhs.0)
+impl CivilDay {
+    pub const fn new(y: YearType, m: DiffType, d: DiffType) -> Self {
+        let fields = Fields::n_sec(y, m, d, 0, 0, 0);
+
+        Self::from_fields(fields)
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CivilMonth(Fields);
+
+impl CivilMonth {
+    pub const fn new(y: YearType, m: DiffType) -> Self {
+        let fields = Fields::n_sec(y, m, 1, 0, 0, 0);
+
+        Self::from_fields(fields)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CivilYear(Fields);
+
+impl CivilYear {
+    pub const fn new(y: YearType) -> Self {
+        let fields = Fields::n_sec(y, 1, 1, 0, 0, 0);
+
+        Self::from_fields(fields)
+    }
+}
+
+impl_civil_time_type!(CivilSecond, Second);
+impl_civil_time_type!(CivilMinute, Minute);
+impl_civil_time_type!(CivilHour, Hour);
+impl_civil_time_type!(CivilDay, Day);
+impl_civil_time_type!(CivilMonth, Month);
+impl_civil_time_type!(CivilYear, Year);
+
+pub const fn get_yearday(cs: CivilSecond) -> i32 {
+    const MONTH_OFFSETS: [i32; 13] = [-1, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    let feb29 = if cs.month() > 2 && core::is_leap_year(cs.year()) {
+        1
+    } else {
+        0
+    };
+    MONTH_OFFSETS[cs.month() as usize] + feb29 + cs.day()
 }
