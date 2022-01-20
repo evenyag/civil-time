@@ -40,13 +40,13 @@ macro_rules! impl_civil_time_type {
                 self.0.ss as i32
             }
 
-            pub const fn const_add_offset(self, n: DiffType) -> Self {
+            pub const fn add_diff(self, n: DiffType) -> Self {
                 let fields = $Granularity::step(self.0, n);
 
                 Self::from_fields(fields)
             }
 
-            pub const fn const_sub_offset(self, n: DiffType) -> Self {
+            pub const fn sub_diff(self, n: DiffType) -> Self {
                 let fields = if n != DiffType::MIN {
                     $Granularity::step(self.0, -n)
                 } else {
@@ -56,8 +56,12 @@ macro_rules! impl_civil_time_type {
                 Self::from_fields(fields)
             }
 
-            pub const fn const_difference(self, other: Self) -> DiffType {
+            pub const fn difference(self, other: Self) -> DiffType {
                 $Granularity::difference(self.0, other.0)
+            }
+
+            pub const fn yearday(self) -> i32 {
+                get_yearday(CivilSecond::from_fields(self.0))
             }
         }
 
@@ -65,7 +69,7 @@ macro_rules! impl_civil_time_type {
             type Output = Self;
 
             fn add(self, n: DiffType) -> Self::Output {
-                self.const_add_offset(n)
+                self.add_diff(n)
             }
         }
 
@@ -73,7 +77,7 @@ macro_rules! impl_civil_time_type {
             type Output = Self;
 
             fn sub(self, n: DiffType) -> Self::Output {
-                self.const_sub_offset(n)
+                self.sub_diff(n)
             }
         }
 
@@ -81,7 +85,7 @@ macro_rules! impl_civil_time_type {
             type Output = DiffType;
 
             fn sub(self, rhs: Self) -> Self::Output {
-                self.const_difference(rhs)
+                self.difference(rhs)
             }
         }
     };
@@ -173,7 +177,7 @@ impl_civil_time_type!(CivilDay, Day);
 impl_civil_time_type!(CivilMonth, Month);
 impl_civil_time_type!(CivilYear, Year);
 
-pub const fn get_yearday(cs: CivilSecond) -> i32 {
+const fn get_yearday(cs: CivilSecond) -> i32 {
     const MONTH_OFFSETS: [i32; 13] = [-1, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
     let feb29 = if cs.month() > 2 && core::is_leap_year(cs.year()) {
         1

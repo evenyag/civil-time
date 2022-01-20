@@ -22,6 +22,7 @@ pub enum Weekday {
 }
 
 impl Weekday {
+    // TODO(evenyag): Impl for all civil time.
     pub const fn from_civil_second(cs: CivilSecond) -> Self {
         const WEEKDAY_BY_MON_OFF: [Weekday; 13] = [
             Weekday::Mon,
@@ -54,6 +55,7 @@ impl Weekday {
     }
 }
 
+// TODO(evenyag): Impl for all civil time which can convert into CivilDay.
 pub const fn next_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
     const WEEKDAYS_FORW: [Weekday; 14] = [
         Weekday::Mon,
@@ -78,7 +80,7 @@ pub const fn next_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
             let mut j = i + 1;
             loop {
                 if wd.const_eq(WEEKDAYS_FORW[j]) {
-                    return cd.const_add_offset((j - i) as DiffType);
+                    return cd.add_diff((j - i) as DiffType);
                 }
                 j += 1;
             }
@@ -87,6 +89,7 @@ pub const fn next_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
     }
 }
 
+// TODO(evenyag): Impl for all civil time which can convert into CivilDay.
 pub const fn prev_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
     const WEEKDAYS_BACK: [Weekday; 14] = [
         Weekday::Sun,
@@ -111,7 +114,7 @@ pub const fn prev_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
             let mut j = i + 1;
             loop {
                 if wd.const_eq(WEEKDAYS_BACK[j]) {
-                    return cd.const_sub_offset((j - i) as DiffType);
+                    return cd.sub_diff((j - i) as DiffType);
                 }
                 j += 1;
             }
