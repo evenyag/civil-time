@@ -55,7 +55,7 @@ impl Weekday {
     }
 }
 
-// TODO(evenyag): Impl for all civil time which can convert into CivilDay.
+// TODO(evenyag): Impl for all civil time which can convert into CivilDay implicitly.
 pub const fn next_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
     const WEEKDAYS_FORW: [Weekday; 14] = [
         Weekday::Mon,
@@ -73,7 +73,7 @@ pub const fn next_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
         Weekday::Sat,
         Weekday::Sun,
     ];
-    let base = Weekday::from_civil_second(CivilSecond::from_civil_day(cd));
+    let base = Weekday::from_civil_second(CivilSecond::from_day(cd));
     let mut i = 0;
     loop {
         if base.const_eq(WEEKDAYS_FORW[i]) {
@@ -89,7 +89,7 @@ pub const fn next_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
     }
 }
 
-// TODO(evenyag): Impl for all civil time which can convert into CivilDay.
+// TODO(evenyag): Impl for all civil time which can convert into CivilDay implicitly.
 pub const fn prev_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
     const WEEKDAYS_BACK: [Weekday; 14] = [
         Weekday::Sun,
@@ -107,7 +107,7 @@ pub const fn prev_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
         Weekday::Tue,
         Weekday::Mon,
     ];
-    let base = Weekday::from_civil_second(CivilSecond::from_civil_day(cd));
+    let base = Weekday::from_civil_second(CivilSecond::from_day(cd));
     let mut i = 0;
     loop {
         if base.const_eq(WEEKDAYS_BACK[i]) {

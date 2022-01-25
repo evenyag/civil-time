@@ -2,6 +2,7 @@ use crate::core::Fields;
 use crate::granularity::{Day, Hour, Minute, Month, Second, Year};
 use std::ops::{Add, Sub};
 
+mod convert;
 mod core;
 mod granularity;
 mod weekday;
@@ -108,10 +109,6 @@ impl CivilSecond {
         let fields = Fields::n_sec(y, m, d, hh, mm, ss);
 
         Self::from_fields(fields)
-    }
-
-    const fn from_civil_day(cd: CivilDay) -> Self {
-        CivilSecond::from_fields(cd.0)
     }
 }
 
