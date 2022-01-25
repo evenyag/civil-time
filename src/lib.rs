@@ -10,11 +10,35 @@ mod weekday;
 pub use crate::core::{DiffType, YearType};
 pub use crate::weekday::{next_weekday, prev_weekday, Weekday};
 
+pub trait BuildCivilTime {
+    fn build_from_ymd_hms(
+        y: YearType,
+        m: DiffType,
+        d: DiffType,
+        hh: DiffType,
+        mm: DiffType,
+        ss: DiffType,
+    ) -> Self;
+}
+
 macro_rules! impl_civil_time_type {
     ($Type: ident, $Granularity: ident) => {
         impl $Type {
             const fn from_fields(fields: Fields) -> Self {
                 $Type($Granularity::align(fields))
+            }
+
+            const fn from_ymd_hms(
+                y: YearType,
+                m: DiffType,
+                d: DiffType,
+                hh: DiffType,
+                mm: DiffType,
+                ss: DiffType,
+            ) -> Self {
+                let fields = Fields::n_sec(y, m, d, hh, mm, ss);
+
+                Self::from_fields(fields)
             }
 
             pub const fn year(&self) -> YearType {
@@ -89,14 +113,31 @@ macro_rules! impl_civil_time_type {
                 self.difference(rhs)
             }
         }
+
+        impl BuildCivilTime for $Type {
+            fn build_from_ymd_hms(
+                y: YearType,
+                m: DiffType,
+                d: DiffType,
+                hh: DiffType,
+                mm: DiffType,
+                ss: DiffType,
+            ) -> Self {
+                Self::from_ymd_hms(y, m, d, hh, mm, ss)
+            }
+        }
+
+        impl Default for $Type {
+            fn default() -> Self {
+                Builder::default().build()
+            }
+        }
     };
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct CivilSecond(Fields);
 
-// TODO(evenyag): Maybe we can construct different civil time via a generic builder, which
-// decide which civil time struct to built via generic param in build() method.
 impl CivilSecond {
     pub const fn new(
         y: YearType,
@@ -183,3 +224,84 @@ const fn get_yearday(cs: CivilSecond) -> i32 {
     };
     MONTH_OFFSETS[cs.month() as usize] + feb29 + cs.day()
 }
+
+#[derive(Clone, Copy)]
+pub struct Builder {
+    y: YearType,
+    m: DiffType,
+    d: DiffType,
+    hh: DiffType,
+    mm: DiffType,
+    ss: DiffType,
+}
+
+impl Builder {
+    pub const fn new() -> Self {
+        Self {
+            y: 1970,
+            m: 1,
+            d: 1,
+            hh: 0,
+            mm: 0,
+            ss: 0,
+        }
+    }
+
+    pub const fn year(mut self, y: YearType) -> Self {
+        self.y = y;
+        self
+    }
+
+    pub const fn month(mut self, m: DiffType) -> Self {
+        self.m = m;
+        self
+    }
+
+    pub const fn day(mut self, d: DiffType) -> Self {
+        self.d = d;
+        self
+    }
+
+    pub const fn hh(mut self, hh: DiffType) -> Self {
+        self.hh = hh;
+        self
+    }
+
+    pub const fn mm(mut self, mm: DiffType) -> Self {
+        self.mm = mm;
+        self
+    }
+
+    pub const fn ss(mut self, ss: DiffType) -> Self {
+        self.ss = ss;
+        self
+    }
+
+    pub fn build<T: BuildCivilTime>(self) -> T {
+        T::build_from_ymd_hms(self.y, self.m, self.d, self.hh, self.mm, self.ss)
+    }
+}
+
+impl Default for Builder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+macro_rules! impl_build {
+    ($func: ident, $Type: ty) => {
+        impl Builder {
+            pub const fn $func(self) -> $Type {
+                <$Type>::from_ymd_hms(self.y, self.m, self.d, self.hh, self.mm, self.ss)
+            }
+        }
+    };
+}
+
+// Implement build method for each civil time type.
+impl_build!(build_second, CivilSecond);
+impl_build!(build_minute, CivilMinute);
+impl_build!(build_hour, CivilHour);
+impl_build!(build_day, CivilDay);
+impl_build!(build_month, CivilMonth);
+impl_build!(build_year, CivilYear);
