@@ -68,13 +68,21 @@ macro_rules! impl_civil_time_type {
                 self.0.ss as i32
             }
 
-            pub const fn add_diff(self, n: DiffType) -> Self {
+            pub const fn weekday(&self) -> Weekday {
+                Weekday::from_second(CivilSecond::from_fields(self.0))
+            }
+
+            pub const fn yearday(&self) -> i32 {
+                get_yearday(CivilSecond::from_fields(self.0))
+            }
+
+            const fn add_diff(self, n: DiffType) -> Self {
                 let fields = $Granularity::step(self.0, n);
 
                 Self::from_fields(fields)
             }
 
-            pub const fn sub_diff(self, n: DiffType) -> Self {
+            const fn sub_diff(self, n: DiffType) -> Self {
                 let fields = if n != DiffType::MIN {
                     $Granularity::step(self.0, -n)
                 } else {
@@ -84,16 +92,8 @@ macro_rules! impl_civil_time_type {
                 Self::from_fields(fields)
             }
 
-            pub const fn difference(self, other: Self) -> DiffType {
+            const fn difference(self, other: Self) -> DiffType {
                 $Granularity::difference(self.0, other.0)
-            }
-
-            pub const fn weekday(&self) -> Weekday {
-                Weekday::from_second(CivilSecond::from_fields(self.0))
-            }
-
-            pub const fn yearday(&self) -> i32 {
-                get_yearday(CivilSecond::from_fields(self.0))
             }
         }
 
