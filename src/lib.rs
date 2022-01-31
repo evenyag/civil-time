@@ -1,6 +1,6 @@
 use crate::core::Fields;
 use crate::granularity::{Day, Hour, Minute, Month, Second, Year};
-use std::ops::{Add, Sub};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 mod convert;
 mod core;
@@ -105,11 +105,23 @@ macro_rules! impl_civil_time_type {
             }
         }
 
+        impl AddAssign<DiffType> for $Type {
+            fn add_assign(&mut self, n: DiffType) {
+                *self = self.add_diff(n);
+            }
+        }
+
         impl Sub<DiffType> for $Type {
             type Output = Self;
 
             fn sub(self, n: DiffType) -> Self::Output {
                 self.sub_diff(n)
+            }
+        }
+
+        impl SubAssign<DiffType> for $Type {
+            fn sub_assign(&mut self, n: DiffType) {
+                *self = self.sub_diff(n);
             }
         }
 
