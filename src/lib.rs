@@ -1,5 +1,6 @@
 use crate::core::Fields;
 use crate::granularity::{Day, Hour, Minute, Month, Second, Year};
+use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 mod convert;
@@ -154,7 +155,7 @@ macro_rules! impl_civil_time_type {
     };
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct CivilSecond(Fields);
 
 impl CivilSecond {
@@ -170,7 +171,22 @@ impl CivilSecond {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+impl fmt::Debug for CivilSecond {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}-{:0>2}-{:0>2}T{:0>2}:{:0>2}:{:0>2}",
+            self.year(),
+            self.month(),
+            self.day(),
+            self.hour(),
+            self.minute(),
+            self.second()
+        )
+    }
+}
+
+#[derive(Clone, Copy)]
 pub struct CivilMinute(Fields);
 
 impl CivilMinute {
@@ -179,7 +195,21 @@ impl CivilMinute {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+impl fmt::Debug for CivilMinute {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}-{:0>2}-{:0>2}T{:0>2}:{:0>2}",
+            self.year(),
+            self.month(),
+            self.day(),
+            self.hour(),
+            self.minute()
+        )
+    }
+}
+
+#[derive(Clone, Copy)]
 pub struct CivilHour(Fields);
 
 impl CivilHour {
@@ -188,7 +218,20 @@ impl CivilHour {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+impl fmt::Debug for CivilHour {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}-{:0>2}-{:0>2}T{:0>2}",
+            self.year(),
+            self.month(),
+            self.day(),
+            self.hour()
+        )
+    }
+}
+
+#[derive(Clone, Copy)]
 pub struct CivilDay(Fields);
 
 impl CivilDay {
@@ -197,7 +240,13 @@ impl CivilDay {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+impl fmt::Debug for CivilDay {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}-{:0>2}-{:0>2}", self.year(), self.month(), self.day())
+    }
+}
+
+#[derive(Clone, Copy)]
 pub struct CivilMonth(Fields);
 
 impl CivilMonth {
@@ -206,12 +255,24 @@ impl CivilMonth {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+impl fmt::Debug for CivilMonth {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}-{:0>2}", self.year(), self.month())
+    }
+}
+
+#[derive(Clone, Copy)]
 pub struct CivilYear(Fields);
 
 impl CivilYear {
     pub const fn new(y: YearType) -> Self {
         Self::from_ymd_hms(y, 1, 1, 0, 0, 0)
+    }
+}
+
+impl fmt::Debug for CivilYear {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.year())
     }
 }
 
@@ -597,6 +658,33 @@ mod tests {
     }
 
     // The remaining tests do not use constexpr.
+
+    macro_rules! expect_eq {
+        ($expect: expr, $time: expr) => {
+            assert_eq!($expect, format!("{:?}", $time));
+        };
+    }
+
+    #[test]
+    fn test_default() {
+        let ss = CivilSecond::default();
+        expect_eq!("1970-01-01T00:00:00", ss);
+
+        let mm = CivilMinute::default();
+        expect_eq!("1970-01-01T00:00", mm);
+
+        let hh = CivilHour::default();
+        expect_eq!("1970-01-01T00", hh);
+
+        let d = CivilDay::default();
+        expect_eq!("1970-01-01", d);
+
+        let m = CivilMonth::default();
+        expect_eq!("1970-01", m);
+
+        let y = CivilYear::default();
+        expect_eq!("1970", y);
+    }
 
     // TODO(evenyag): Add/Sub/Difference/Compare test without const.
 }
