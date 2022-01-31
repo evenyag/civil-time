@@ -8,7 +8,7 @@ mod granularity;
 mod weekday;
 
 pub use crate::core::{DiffType, YearType};
-pub use crate::weekday::{next_weekday, prev_weekday, Weekday};
+pub use crate::weekday::Weekday;
 
 pub trait BuildCivilTime {
     fn build_from_ymd_hms(
@@ -21,6 +21,7 @@ pub trait BuildCivilTime {
     ) -> Self;
 }
 
+// TODO(evenyag): MIN and MAX
 macro_rules! impl_civil_time_type {
     ($Type: ident, $Granularity: ident) => {
         impl $Type {
@@ -85,7 +86,11 @@ macro_rules! impl_civil_time_type {
                 $Granularity::difference(self.0, other.0)
             }
 
-            pub const fn yearday(self) -> i32 {
+            pub const fn weekday(&self) -> Weekday {
+                Weekday::from_second(CivilSecond::from_fields(self.0))
+            }
+
+            pub const fn yearday(&self) -> i32 {
                 get_yearday(CivilSecond::from_fields(self.0))
             }
         }

@@ -1,6 +1,6 @@
 //! Weekday and related utilities.
 
-use crate::{CivilDay, CivilSecond, DiffType, YearType};
+use crate::{CivilDay, CivilHour, CivilMinute, CivilSecond, DiffType, YearType};
 
 /// The day of week.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -22,8 +22,7 @@ pub enum Weekday {
 }
 
 impl Weekday {
-    // TODO(evenyag): Impl for all civil time.
-    pub const fn from_civil_second(cs: CivilSecond) -> Self {
+    pub(crate) const fn from_second(cs: CivilSecond) -> Self {
         const WEEKDAY_BY_MON_OFF: [Weekday; 13] = [
             Weekday::Mon,
             Weekday::Tue,
@@ -49,14 +48,13 @@ impl Weekday {
         WEEKDAY_BY_MON_OFF[index]
     }
 
-    const fn const_eq(&self, other: Weekday) -> bool {
+    const fn equals(&self, other: Weekday) -> bool {
         // Can't call PartialEq/Eq in const function.
         *self as usize == other as usize
     }
 }
 
-// TODO(evenyag): Impl for all civil time which can convert into CivilDay implicitly.
-pub const fn next_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
+const fn next_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
     const WEEKDAYS_FORW: [Weekday; 14] = [
         Weekday::Mon,
         Weekday::Tue,
@@ -73,13 +71,13 @@ pub const fn next_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
         Weekday::Sat,
         Weekday::Sun,
     ];
-    let base = Weekday::from_civil_second(CivilSecond::from_day(cd));
+    let base = cd.weekday();
     let mut i = 0;
     loop {
-        if base.const_eq(WEEKDAYS_FORW[i]) {
+        if base.equals(WEEKDAYS_FORW[i]) {
             let mut j = i + 1;
             loop {
-                if wd.const_eq(WEEKDAYS_FORW[j]) {
+                if wd.equals(WEEKDAYS_FORW[j]) {
                     return cd.add_diff((j - i) as DiffType);
                 }
                 j += 1;
@@ -89,8 +87,7 @@ pub const fn next_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
     }
 }
 
-// TODO(evenyag): Impl for all civil time which can convert into CivilDay implicitly.
-pub const fn prev_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
+const fn prev_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
     const WEEKDAYS_BACK: [Weekday; 14] = [
         Weekday::Sun,
         Weekday::Sat,
@@ -107,13 +104,13 @@ pub const fn prev_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
         Weekday::Tue,
         Weekday::Mon,
     ];
-    let base = Weekday::from_civil_second(CivilSecond::from_day(cd));
+    let base = cd.weekday();
     let mut i = 0;
     loop {
-        if base.const_eq(WEEKDAYS_BACK[i]) {
+        if base.equals(WEEKDAYS_BACK[i]) {
             let mut j = i + 1;
             loop {
-                if wd.const_eq(WEEKDAYS_BACK[j]) {
+                if wd.equals(WEEKDAYS_BACK[j]) {
                     return cd.sub_diff((j - i) as DiffType);
                 }
                 j += 1;
@@ -122,3 +119,24 @@ pub const fn prev_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
         i += 1;
     }
 }
+
+macro_rules! impl_weekday_ops {
+    ($Type: ty) => {
+        impl $Type {
+            pub const fn next_weekday(self, wd: Weekday) -> CivilDay {
+                let cd = CivilDay::from_fields(self.0);
+                next_weekday(cd, wd)
+            }
+
+            pub const fn prev_weekday(self, wd: Weekday) -> CivilDay {
+                let cd = CivilDay::from_fields(self.0);
+                prev_weekday(cd, wd)
+            }
+        }
+    };
+}
+
+impl_weekday_ops!(CivilSecond);
+impl_weekday_ops!(CivilMinute);
+impl_weekday_ops!(CivilHour);
+impl_weekday_ops!(CivilDay);
