@@ -48,7 +48,7 @@ impl Weekday {
         WEEKDAY_BY_MON_OFF[index]
     }
 
-    const fn equals(&self, other: Weekday) -> bool {
+    pub(crate) const fn equals(&self, other: Weekday) -> bool {
         // Can't call PartialEq/Eq in const function.
         *self as usize == other as usize
     }

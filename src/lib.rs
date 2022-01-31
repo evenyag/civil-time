@@ -300,3 +300,291 @@ impl_build!(build_hour, CivilHour);
 impl_build!(build_day, CivilDay);
 impl_build!(build_month, CivilMonth);
 impl_build!(build_year, CivilYear);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use static_assertions as sa;
+
+    // const tests
+
+    #[test]
+    fn test_normal() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, 1, 28, 17, 14, 12);
+        sa::const_assert_eq!(12, _CSS.second());
+        const _CMM: CivilMinute = CivilMinute::new(2016, 1, 28, 17, 14);
+        sa::const_assert_eq!(14, _CMM.minute());
+        const _CHH: CivilHour = CivilHour::new(2016, 1, 28, 17);
+        sa::const_assert_eq!(17, _CHH.hour());
+        const _CD: CivilDay = CivilDay::new(2016, 1, 28);
+        sa::const_assert_eq!(28, _CD.day());
+        const _CM: CivilMonth = CivilMonth::new(2016, 1);
+        sa::const_assert_eq!(1, _CM.month());
+        const _CY: CivilYear = CivilYear::new(2016);
+        sa::const_assert_eq!(2016, _CY.year());
+    }
+
+    #[test]
+    fn test_normalized() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, 1, 28, 17, 14, 12);
+        sa::const_assert_eq!(2016, _CSS.year());
+        sa::const_assert_eq!(1, _CSS.month());
+        sa::const_assert_eq!(28, _CSS.day());
+        sa::const_assert_eq!(17, _CSS.hour());
+        sa::const_assert_eq!(14, _CSS.minute());
+        sa::const_assert_eq!(12, _CSS.second());
+    }
+
+    #[test]
+    fn test_second_overflow() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, 1, 28, 17, 14, 121);
+        sa::const_assert_eq!(2016, _CSS.year());
+        sa::const_assert_eq!(1, _CSS.month());
+        sa::const_assert_eq!(28, _CSS.day());
+        sa::const_assert_eq!(17, _CSS.hour());
+        sa::const_assert_eq!(16, _CSS.minute());
+        sa::const_assert_eq!(1, _CSS.second());
+    }
+
+    #[test]
+    fn test_second_underflow() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, 1, 28, 17, 14, -121);
+        sa::const_assert_eq!(2016, _CSS.year());
+        sa::const_assert_eq!(1, _CSS.month());
+        sa::const_assert_eq!(28, _CSS.day());
+        sa::const_assert_eq!(17, _CSS.hour());
+        sa::const_assert_eq!(11, _CSS.minute());
+        sa::const_assert_eq!(59, _CSS.second());
+    }
+
+    #[test]
+    fn test_minute_overflow() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, 1, 28, 17, 121, 12);
+        sa::const_assert_eq!(2016, _CSS.year());
+        sa::const_assert_eq!(1, _CSS.month());
+        sa::const_assert_eq!(28, _CSS.day());
+        sa::const_assert_eq!(19, _CSS.hour());
+        sa::const_assert_eq!(1, _CSS.minute());
+        sa::const_assert_eq!(12, _CSS.second());
+    }
+
+    #[test]
+    fn test_minute_underflow() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, 1, 28, 17, -121, 12);
+        sa::const_assert_eq!(2016, _CSS.year());
+        sa::const_assert_eq!(1, _CSS.month());
+        sa::const_assert_eq!(28, _CSS.day());
+        sa::const_assert_eq!(14, _CSS.hour());
+        sa::const_assert_eq!(59, _CSS.minute());
+        sa::const_assert_eq!(12, _CSS.second());
+    }
+
+    #[test]
+    fn test_hour_overflow() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, 1, 28, 49, 14, 12);
+        sa::const_assert_eq!(2016, _CSS.year());
+        sa::const_assert_eq!(1, _CSS.month());
+        sa::const_assert_eq!(30, _CSS.day());
+        sa::const_assert_eq!(1, _CSS.hour());
+        sa::const_assert_eq!(14, _CSS.minute());
+        sa::const_assert_eq!(12, _CSS.second());
+    }
+
+    #[test]
+    fn test_hour_underflow() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, 1, 28, -49, 14, 12);
+        sa::const_assert_eq!(2016, _CSS.year());
+        sa::const_assert_eq!(1, _CSS.month());
+        sa::const_assert_eq!(25, _CSS.day());
+        sa::const_assert_eq!(23, _CSS.hour());
+        sa::const_assert_eq!(14, _CSS.minute());
+        sa::const_assert_eq!(12, _CSS.second());
+    }
+
+    #[test]
+    fn test_month_overflow() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, 25, 28, 17, 14, 12);
+        sa::const_assert_eq!(2018, _CSS.year());
+        sa::const_assert_eq!(1, _CSS.month());
+        sa::const_assert_eq!(28, _CSS.day());
+        sa::const_assert_eq!(17, _CSS.hour());
+        sa::const_assert_eq!(14, _CSS.minute());
+        sa::const_assert_eq!(12, _CSS.second());
+    }
+
+    #[test]
+    fn test_month_underflow() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, -25, 28, 17, 14, 12);
+        sa::const_assert_eq!(2013, _CSS.year());
+        sa::const_assert_eq!(11, _CSS.month());
+        sa::const_assert_eq!(28, _CSS.day());
+        sa::const_assert_eq!(17, _CSS.hour());
+        sa::const_assert_eq!(14, _CSS.minute());
+        sa::const_assert_eq!(12, _CSS.second());
+    }
+
+    #[test]
+    fn test_c4_overflow() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, 1, 292195, 17, 14, 12);
+        sa::const_assert_eq!(2816, _CSS.year());
+        sa::const_assert_eq!(1, _CSS.month());
+        sa::const_assert_eq!(1, _CSS.day());
+        sa::const_assert_eq!(17, _CSS.hour());
+        sa::const_assert_eq!(14, _CSS.minute());
+        sa::const_assert_eq!(12, _CSS.second());
+    }
+
+    #[test]
+    fn test_c4_underflow() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, 1, -292195, 17, 14, 12);
+        sa::const_assert_eq!(1215, _CSS.year());
+        sa::const_assert_eq!(12, _CSS.month());
+        sa::const_assert_eq!(30, _CSS.day());
+        sa::const_assert_eq!(17, _CSS.hour());
+        sa::const_assert_eq!(14, _CSS.minute());
+        sa::const_assert_eq!(12, _CSS.second());
+    }
+
+    #[test]
+    fn test_mixed_normalization() {
+        const _CSS: CivilSecond = CivilSecond::new(2016, -42, 122, 99, -147, 4949);
+        sa::const_assert_eq!(2012, _CSS.year());
+        sa::const_assert_eq!(10, _CSS.month());
+        sa::const_assert_eq!(4, _CSS.day());
+        sa::const_assert_eq!(1, _CSS.hour());
+        sa::const_assert_eq!(55, _CSS.minute());
+        sa::const_assert_eq!(29, _CSS.second());
+    }
+
+    // Arithmetic const tests
+    #[test]
+    fn test_addition() {
+        const _CS1: CivilSecond = CivilSecond::new(2016, 1, 28, 17, 14, 12);
+        const _CS2: CivilSecond = _CS1.add_diff(50);
+        sa::const_assert_eq!(2016, _CS2.year());
+        sa::const_assert_eq!(1, _CS2.month());
+        sa::const_assert_eq!(28, _CS2.day());
+        sa::const_assert_eq!(17, _CS2.hour());
+        sa::const_assert_eq!(15, _CS2.minute());
+        sa::const_assert_eq!(2, _CS2.second());
+    }
+
+    #[test]
+    fn test_subtraction() {
+        const _CS1: CivilSecond = CivilSecond::new(2016, 1, 28, 17, 14, 12);
+        const _CS2: CivilSecond = _CS1.sub_diff(50);
+        sa::const_assert_eq!(2016, _CS2.year());
+        sa::const_assert_eq!(1, _CS2.month());
+        sa::const_assert_eq!(28, _CS2.day());
+        sa::const_assert_eq!(17, _CS2.hour());
+        sa::const_assert_eq!(13, _CS2.minute());
+        sa::const_assert_eq!(22, _CS2.second());
+    }
+
+    #[test]
+    fn test_difference() {
+        const _CD1: CivilDay = CivilDay::new(2016, 1, 28);
+        const _CD2: CivilDay = CivilDay::new(2015, 1, 28);
+        const _DIFF: DiffType = _CD1.difference(_CD2);
+        sa::const_assert_eq!(365, _DIFF);
+    }
+
+    #[test]
+    fn test_new_with_huge_year() {
+        const _H: CivilHour = CivilHour::new(-9223372036854775807, 1, 1, -1);
+        sa::const_assert_eq!(-9223372036854775807 - 1, _H.year());
+        sa::const_assert_eq!(12, _H.month());
+        sa::const_assert_eq!(31, _H.day());
+        sa::const_assert_eq!(23, _H.hour());
+    }
+
+    #[test]
+    fn test_difference_with_huge_year() {
+        {
+            const _D1: CivilDay = CivilDay::new(9223372036854775807, 1, 1);
+            const _D2: CivilDay = CivilDay::new(9223372036854775807, 12, 31);
+            sa::const_assert_eq!(364, _D2.difference(_D1));
+        }
+        {
+            const _D1: CivilDay = CivilDay::new(-9223372036854775807 - 1, 1, 1);
+            const _D2: CivilDay = CivilDay::new(-9223372036854775807 - 1, 12, 31);
+            sa::const_assert_eq!(365, _D2.difference(_D1));
+        }
+        {
+            // Check the limits of the return value at the end of the year range.
+            const _D1: CivilDay = CivilDay::new(9223372036854775807, 1, 1);
+            const _D2: CivilDay = CivilDay::new(9198119301927009252, 6, 6);
+            sa::const_assert_eq!(9223372036854775807, _D1.difference(_D2));
+            sa::const_assert_eq!(-9223372036854775807 - 1, (_D2.sub_diff(1)).difference(_D1));
+        }
+        {
+            // Check the limits of the return value at the start of the year range.
+            const _D1: CivilDay = CivilDay::new(-9223372036854775807 - 1, 1, 1);
+            const _D2: CivilDay = CivilDay::new(-9198119301927009254, 7, 28);
+            sa::const_assert_eq!(9223372036854775807, _D2.difference(_D1));
+            sa::const_assert_eq!(-9223372036854775807 - 1, _D1.difference(_D2.add_diff(1)));
+        }
+        {
+            // Check the limits of the return value from either side of year 0.
+            const _D1: CivilDay = CivilDay::new(-12626367463883278, 9, 3);
+            const _D2: CivilDay = CivilDay::new(12626367463883277, 3, 28);
+            sa::const_assert_eq!(9223372036854775807, _D2.difference(_D1));
+            sa::const_assert_eq!(-9223372036854775807 - 1, _D1.difference(_D2.add_diff(1)));
+        }
+    }
+
+    #[test]
+    fn test_difference_no_intermediate_overflow() {
+        {
+            // The difference up to the minute field would be below the minimum
+            // DiffType, but the 52 extra seconds brings us back to the minimum.
+            const _S1: CivilSecond = CivilSecond::new(-292277022657, 1, 27, 8, 29 - 1, 52);
+            const _S2: CivilSecond = CivilSecond::new(1970, 1, 1, 0, 0 - 1, 0);
+            sa::const_assert_eq!(-9223372036854775807 - 1, _S1.difference(_S2));
+        }
+        {
+            // The difference up to the minute field would be above the maximum
+            // DiffType, but the -53 extra seconds brings us back to the maximum.
+            const _S1: CivilSecond = CivilSecond::new(292277026596, 12, 4, 15, 30, 7 - 7);
+            const _S2: CivilSecond = CivilSecond::new(1970, 1, 1, 0, 0, 0 - 7);
+            sa::const_assert_eq!(9223372036854775807, _S1.difference(_S2));
+        }
+    }
+
+    // Helper const test.
+    #[test]
+    fn test_weekday() {
+        const _CD: CivilDay = CivilDay::new(2016, 1, 28);
+        const _WD: Weekday = _CD.weekday();
+        sa::const_assert!(_WD.equals(Weekday::Thu));
+    }
+
+    #[test]
+    fn test_next_weekday() {
+        const _CD: CivilDay = CivilDay::new(2016, 1, 28);
+        const _NEXT: CivilDay = _CD.next_weekday(Weekday::Thu);
+        sa::const_assert_eq!(2016, _NEXT.year());
+        sa::const_assert_eq!(2, _NEXT.month());
+        sa::const_assert_eq!(4, _NEXT.day());
+    }
+
+    #[test]
+    fn test_prev_weekday() {
+        const _CD: CivilDay = CivilDay::new(2016, 1, 28);
+        const _PREV: CivilDay = _CD.prev_weekday(Weekday::Thu);
+        sa::const_assert_eq!(2016, _PREV.year());
+        sa::const_assert_eq!(1, _PREV.month());
+        sa::const_assert_eq!(21, _PREV.day());
+    }
+
+    #[test]
+    fn test_yearday() {
+        const _CD: CivilDay = CivilDay::new(2016, 1, 28);
+        const _YD: i32 = _CD.yearday();
+        sa::const_assert_eq!(28, _YD);
+    }
+
+    // The remaining tests do not use constexpr.
+
+    // TODO(evenyag): Add/Sub/Difference/Compare test without const.
+}
