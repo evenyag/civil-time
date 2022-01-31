@@ -154,9 +154,7 @@ impl CivilSecond {
         mm: DiffType,
         ss: DiffType,
     ) -> Self {
-        let fields = Fields::n_sec(y, m, d, hh, mm, ss);
-
-        Self::from_fields(fields)
+        Self::from_ymd_hms(y, m, d, hh, mm, ss)
     }
 }
 
@@ -165,9 +163,7 @@ pub struct CivilMinute(Fields);
 
 impl CivilMinute {
     pub const fn new(y: YearType, m: DiffType, d: DiffType, hh: DiffType, mm: DiffType) -> Self {
-        let fields = Fields::n_sec(y, m, d, hh, mm, 0);
-
-        Self::from_fields(fields)
+        Self::from_ymd_hms(y, m, d, hh, mm, 0)
     }
 }
 
@@ -176,9 +172,7 @@ pub struct CivilHour(Fields);
 
 impl CivilHour {
     pub const fn new(y: YearType, m: DiffType, d: DiffType, hh: DiffType) -> Self {
-        let fields = Fields::n_sec(y, m, d, hh, 0, 0);
-
-        Self::from_fields(fields)
+        Self::from_ymd_hms(y, m, d, hh, 0, 0)
     }
 }
 
@@ -187,9 +181,7 @@ pub struct CivilDay(Fields);
 
 impl CivilDay {
     pub const fn new(y: YearType, m: DiffType, d: DiffType) -> Self {
-        let fields = Fields::n_sec(y, m, d, 0, 0, 0);
-
-        Self::from_fields(fields)
+        Self::from_ymd_hms(y, m, d, 0, 0, 0)
     }
 }
 
@@ -198,9 +190,7 @@ pub struct CivilMonth(Fields);
 
 impl CivilMonth {
     pub const fn new(y: YearType, m: DiffType) -> Self {
-        let fields = Fields::n_sec(y, m, 1, 0, 0, 0);
-
-        Self::from_fields(fields)
+        Self::from_ymd_hms(y, m, 1, 0, 0, 0)
     }
 }
 
@@ -209,9 +199,7 @@ pub struct CivilYear(Fields);
 
 impl CivilYear {
     pub const fn new(y: YearType) -> Self {
-        let fields = Fields::n_sec(y, 1, 1, 0, 0, 0);
-
-        Self::from_fields(fields)
+        Self::from_ymd_hms(y, 1, 1, 0, 0, 0)
     }
 }
 
