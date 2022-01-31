@@ -21,10 +21,12 @@ pub trait BuildCivilTime {
     ) -> Self;
 }
 
-// TODO(evenyag): MIN and MAX
 macro_rules! impl_civil_time_type {
     ($Type: ident, $Granularity: ident) => {
         impl $Type {
+            pub const MAX: $Type = $Type::from_ymd_hms(DiffType::MAX, 12, 31, 23, 59, 59);
+            pub const MIN: $Type = $Type::from_ymd_hms(DiffType::MIN, 1, 1, 0, 0, 0);
+
             const fn from_fields(fields: Fields) -> Self {
                 $Type($Granularity::align(fields))
             }
