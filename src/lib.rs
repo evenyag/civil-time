@@ -1,11 +1,11 @@
+use crate::alignment::{Day, Hour, Minute, Month, Second, Year};
 use crate::core::Fields;
-use crate::granularity::{Day, Hour, Minute, Month, Second, Year};
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
+mod alignment;
 mod convert;
 mod core;
-mod granularity;
 mod weekday;
 
 pub use crate::core::{DiffType, YearType};
@@ -23,13 +23,13 @@ pub trait BuildCivilTime {
 }
 
 macro_rules! impl_civil_time_type {
-    ($Type: ident, $Granularity: ident) => {
+    ($Type: ident, $Alignment: ident) => {
         impl $Type {
             pub const MAX: $Type = $Type::from_ymd_hms(DiffType::MAX, 12, 31, 23, 59, 59);
             pub const MIN: $Type = $Type::from_ymd_hms(DiffType::MIN, 1, 1, 0, 0, 0);
 
             const fn from_fields(fields: Fields) -> Self {
-                $Type($Granularity::align(fields))
+                $Type($Alignment::align(fields))
             }
 
             const fn from_ymd_hms(
@@ -78,23 +78,23 @@ macro_rules! impl_civil_time_type {
             }
 
             const fn add_diff(self, n: DiffType) -> Self {
-                let fields = $Granularity::step(self.0, n);
+                let fields = $Alignment::step(self.0, n);
 
                 Self::from_fields(fields)
             }
 
             const fn sub_diff(self, n: DiffType) -> Self {
                 let fields = if n != DiffType::MIN {
-                    $Granularity::step(self.0, -n)
+                    $Alignment::step(self.0, -n)
                 } else {
-                    $Granularity::step($Granularity::step(self.0, -(n + 1)), 1)
+                    $Alignment::step($Alignment::step(self.0, -(n + 1)), 1)
                 };
 
                 Self::from_fields(fields)
             }
 
             const fn difference(self, other: Self) -> DiffType {
-                $Granularity::difference(self.0, other.0)
+                $Alignment::difference(self.0, other.0)
             }
         }
 

@@ -1,4 +1,4 @@
-//! Different granualrities.
+//! Different alignments.
 
 use crate::core::{DayType, DiffType, Fields, MonthType};
 use crate::YearType;
@@ -6,7 +6,7 @@ use crate::YearType;
 // TODO(evenyag): Use trait once rust supports declaring const functions in trait.
 // See issue #57563 <https://github.com/rust-lang/rust/issues/57563>
 
-/// Second granularity.
+/// Second alignment.
 pub(crate) struct Second;
 
 impl Second {
@@ -33,7 +33,7 @@ impl Second {
     }
 }
 
-/// Minute granularity.
+/// Minute alignment.
 pub(crate) struct Minute;
 
 impl Minute {
@@ -68,7 +68,7 @@ impl Minute {
     }
 }
 
-/// Hour granularity.
+/// Hour alignment.
 pub(crate) struct Hour;
 
 impl Hour {
@@ -103,7 +103,7 @@ impl Hour {
     }
 }
 
-/// Day granularity.
+/// Day alignment.
 pub(crate) struct Day;
 
 impl Day {
@@ -130,7 +130,7 @@ impl Day {
     }
 }
 
-/// Month granularity.
+/// Month alignment.
 pub(crate) struct Month;
 
 impl Month {
@@ -165,7 +165,7 @@ impl Month {
     }
 }
 
-/// Year granularity.
+/// Year alignment.
 pub(crate) struct Year;
 
 impl Year {
