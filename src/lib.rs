@@ -330,18 +330,18 @@ impl Builder {
         self
     }
 
-    pub const fn hh(mut self, hh: DiffType) -> Self {
-        self.hh = hh;
+    pub const fn hour(mut self, hour: DiffType) -> Self {
+        self.hh = hour;
         self
     }
 
-    pub const fn mm(mut self, mm: DiffType) -> Self {
-        self.mm = mm;
+    pub const fn minute(mut self, minute: DiffType) -> Self {
+        self.mm = minute;
         self
     }
 
-    pub const fn ss(mut self, ss: DiffType) -> Self {
-        self.ss = ss;
+    pub const fn second(mut self, second: DiffType) -> Self {
+        self.ss = second;
         self
     }
 
@@ -375,9 +375,13 @@ impl_build!(build_month, CivilMonth);
 impl_build!(build_year, CivilYear);
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use static_assertions as sa;
+
+    pub fn expect_eq<T: fmt::Debug>(expect: &str, given: T) {
+        assert_eq!(expect, format!("{:?}", given));
+    }
 
     // const tests
 
@@ -659,31 +663,353 @@ mod tests {
 
     // The remaining tests do not use constexpr.
 
-    macro_rules! expect_eq {
-        ($expect: expr, $time: expr) => {
-            assert_eq!($expect, format!("{:?}", $time));
-        };
-    }
-
     #[test]
     fn test_default() {
         let ss = CivilSecond::default();
-        expect_eq!("1970-01-01T00:00:00", ss);
+        expect_eq("1970-01-01T00:00:00", ss);
 
         let mm = CivilMinute::default();
-        expect_eq!("1970-01-01T00:00", mm);
+        expect_eq("1970-01-01T00:00", mm);
 
         let hh = CivilHour::default();
-        expect_eq!("1970-01-01T00", hh);
+        expect_eq("1970-01-01T00", hh);
 
         let d = CivilDay::default();
-        expect_eq!("1970-01-01", d);
+        expect_eq("1970-01-01", d);
 
         let m = CivilMonth::default();
-        expect_eq!("1970-01", m);
+        expect_eq("1970-01", m);
 
         let y = CivilYear::default();
-        expect_eq!("1970", y);
+        expect_eq("1970", y);
+    }
+
+    #[test]
+    fn test_builder_build_second() {
+        expect_eq(
+            "2015-01-02T03:04:05",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .minute(4)
+                .second(5)
+                .build_second(),
+        );
+        expect_eq(
+            "2015-01-02T03:04:00",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .minute(4)
+                .build_second(),
+        );
+        expect_eq(
+            "2015-01-02T03:00:00",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .build_second(),
+        );
+        expect_eq(
+            "2015-01-02T00:00:00",
+            Builder::new().year(2015).month(1).day(2).build_second(),
+        );
+        expect_eq(
+            "2015-01-01T00:00:00",
+            Builder::new().year(2015).month(1).build_second(),
+        );
+        expect_eq(
+            "2015-01-01T00:00:00",
+            Builder::new().year(2015).build_second(),
+        );
+    }
+
+    #[test]
+    fn test_builder_build_minute() {
+        expect_eq(
+            "2015-01-02T03:04",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .minute(4)
+                .second(5)
+                .build_minute(),
+        );
+        expect_eq(
+            "2015-01-02T03:04",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .minute(4)
+                .build_minute(),
+        );
+        expect_eq(
+            "2015-01-02T03:00",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .build_minute(),
+        );
+        expect_eq(
+            "2015-01-02T00:00",
+            Builder::new().year(2015).month(1).day(2).build_minute(),
+        );
+        expect_eq(
+            "2015-01-01T00:00",
+            Builder::new().year(2015).month(1).build_minute(),
+        );
+        expect_eq("2015-01-01T00:00", Builder::new().year(2015).build_minute());
+    }
+
+    #[test]
+    fn test_builder_build_hour() {
+        expect_eq(
+            "2015-01-02T03",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .minute(4)
+                .second(5)
+                .build_hour(),
+        );
+        expect_eq(
+            "2015-01-02T03",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .minute(4)
+                .build_hour(),
+        );
+        expect_eq(
+            "2015-01-02T03",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .build_hour(),
+        );
+        expect_eq(
+            "2015-01-02T00",
+            Builder::new().year(2015).month(1).day(2).build_hour(),
+        );
+        expect_eq(
+            "2015-01-01T00",
+            Builder::new().year(2015).month(1).build_hour(),
+        );
+        expect_eq("2015-01-01T00", Builder::new().year(2015).build_hour());
+    }
+
+    #[test]
+    fn test_builder_build_day() {
+        expect_eq(
+            "2015-01-02",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .minute(4)
+                .second(5)
+                .build_day(),
+        );
+        expect_eq(
+            "2015-01-02",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .minute(4)
+                .build_day(),
+        );
+        expect_eq(
+            "2015-01-02",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .build_day(),
+        );
+        expect_eq(
+            "2015-01-02",
+            Builder::new().year(2015).month(1).day(2).build_day(),
+        );
+        expect_eq("2015-01-01", Builder::new().year(2015).month(1).build_day());
+        expect_eq("2015-01-01", Builder::new().year(2015).build_day());
+    }
+
+    #[test]
+    fn test_builder_build_month() {
+        expect_eq(
+            "2015-01",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .minute(4)
+                .second(5)
+                .build_month(),
+        );
+        expect_eq(
+            "2015-01",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .minute(4)
+                .build_month(),
+        );
+        expect_eq(
+            "2015-01",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .build_month(),
+        );
+        expect_eq(
+            "2015-01",
+            Builder::new().year(2015).month(1).day(2).build_month(),
+        );
+        expect_eq("2015-01", Builder::new().year(2015).month(1).build_month());
+        expect_eq("2015-01", Builder::new().year(2015).build_month());
+    }
+
+    #[test]
+    fn test_builder_build_year() {
+        expect_eq(
+            "2015",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .minute(4)
+                .second(5)
+                .build_year(),
+        );
+        expect_eq(
+            "2015",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .minute(4)
+                .build_year(),
+        );
+        expect_eq(
+            "2015",
+            Builder::new()
+                .year(2015)
+                .month(1)
+                .day(2)
+                .hour(3)
+                .build_year(),
+        );
+        expect_eq(
+            "2015",
+            Builder::new().year(2015).month(1).day(2).build_year(),
+        );
+        expect_eq("2015", Builder::new().year(2015).month(1).build_year());
+        expect_eq("2015", Builder::new().year(2015).build_year());
+    }
+
+    #[test]
+    fn test_builder_build_by_hint() {
+        let builder = Builder::new()
+            .year(2015)
+            .month(1)
+            .day(2)
+            .hour(3)
+            .minute(4)
+            .second(5);
+
+        let ss: CivilSecond = builder.build();
+        expect_eq("2015-01-02T03:04:05", ss);
+
+        let mm: CivilMinute = builder.build();
+        expect_eq("2015-01-02T03:04", mm);
+
+        let hh: CivilHour = builder.build();
+        expect_eq("2015-01-02T03", hh);
+
+        let d: CivilDay = builder.build();
+        expect_eq("2015-01-02", d);
+
+        let m: CivilMonth = builder.build();
+        expect_eq("2015-01", m);
+
+        let y: CivilYear = builder.build();
+        expect_eq("2015", y);
+    }
+
+    #[test]
+    fn test_new_limits() {
+        let max = i64::from(i32::MAX);
+        expect_eq(
+            "2038-01-19T03:14:07",
+            CivilSecond::new(1970, 1, 1, 0, 0, max),
+        );
+        expect_eq(
+            "6121-02-11T05:21:07",
+            CivilSecond::new(1970, 1, 1, 0, max, max),
+        );
+        expect_eq(
+            "251104-11-20T12:21:07",
+            CivilSecond::new(1970, 1, 1, max, max, max),
+        );
+        expect_eq(
+            "6130715-05-30T12:21:07",
+            CivilSecond::new(1970, 1, max, max, max, max),
+        );
+        expect_eq(
+            "185087685-11-26T12:21:07",
+            CivilSecond::new(1970, max, max, max, max, max),
+        );
+
+        let min = i64::from(i32::MIN);
+        expect_eq(
+            "1901-12-13T20:45:52",
+            CivilSecond::new(1970, 1, 1, 0, 0, min),
+        );
+        expect_eq(
+            "-2182-11-20T18:37:52",
+            CivilSecond::new(1970, 1, 1, 0, min, min),
+        );
+        expect_eq(
+            "-247165-02-11T10:37:52",
+            CivilSecond::new(1970, 1, 1, min, min, min),
+        );
+        expect_eq(
+            "-6126776-08-01T10:37:52",
+            CivilSecond::new(1970, 1, min, min, min, min),
+        );
+        expect_eq(
+            "-185083747-10-31T10:37:52",
+            CivilSecond::new(1970, min, min, min, min, min),
+        );
     }
 
     // TODO(evenyag): Add/Sub/Difference/Compare test without const.

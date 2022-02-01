@@ -63,6 +63,7 @@ impl_from!(CivilYear, from_month, CivilMonth);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tests::expect_eq;
     use static_assertions as sa;
 
     #[test]
@@ -86,6 +87,9 @@ mod tests {
         ($Type: ident) => {{
             const _V: $Type = $Type::from_second(CivilSecond::new(2016, 3, 28, 17, 14, 12));
             sa::const_assert_eq!(0, _V.second());
+
+            let v = $Type::from(CivilSecond::new(2016, 3, 28, 17, 14, 12));
+            assert_eq!(0, v.second());
         }};
     }
 
@@ -94,6 +98,9 @@ mod tests {
         ($Type: ident, $expect: expr) => {{
             const _V: $Type = $Type::from_minute(CivilMinute::new(2016, 3, 28, 17, 14));
             sa::const_assert_eq!($expect, _V.minute());
+
+            let v = $Type::from(CivilMinute::new(2016, 3, 28, 17, 14));
+            assert_eq!($expect, v.minute());
         }};
     }
 
@@ -102,6 +109,9 @@ mod tests {
         ($Type: ident, $expect: expr) => {{
             const _V: $Type = $Type::from_hour(CivilHour::new(2016, 3, 28, 17));
             sa::const_assert_eq!($expect, _V.hour());
+
+            let v = $Type::from(CivilHour::new(2016, 3, 28, 17));
+            assert_eq!($expect, v.hour());
         }};
     }
 
@@ -110,6 +120,9 @@ mod tests {
         ($Type: ident, $expect: expr) => {{
             const _V: $Type = $Type::from_day(CivilDay::new(2016, 3, 28));
             sa::const_assert_eq!($expect, _V.day());
+
+            let v = $Type::from(CivilDay::new(2016, 3, 28));
+            assert_eq!($expect, v.day());
         }};
     }
 
@@ -118,6 +131,9 @@ mod tests {
         ($Type: ident, $expect: expr) => {{
             const _V: $Type = $Type::from_month(CivilMonth::new(2016, 3));
             sa::const_assert_eq!($expect, _V.month());
+
+            let v = $Type::from(CivilMonth::new(2016, 3));
+            assert_eq!($expect, v.month());
         }};
     }
 
@@ -126,6 +142,9 @@ mod tests {
         ($Type: ident) => {{
             const _V: $Type = $Type::from_year(CivilYear::new(2016));
             sa::const_assert_eq!(2016, _V.year());
+
+            let v = $Type::from(CivilYear::new(2016));
+            assert_eq!(2016, v.year());
         }};
     }
 
@@ -181,5 +200,43 @@ mod tests {
         check_from_hour!(CivilYear, 0);
         check_from_day!(CivilYear, 1);
         check_from_month!(CivilYear, 1);
+    }
+
+    #[test]
+    fn test_cross_alignment() {
+        // From smaller units -> larger units
+        let second = CivilSecond::new(2015, 1, 2, 3, 4, 5);
+        expect_eq("2015-01-02T03:04:05", second);
+
+        let minute = CivilMinute::from(second);
+        expect_eq("2015-01-02T03:04", minute);
+
+        let hour = CivilHour::from(minute);
+        expect_eq("2015-01-02T03", hour);
+
+        let day = CivilDay::from(hour);
+        expect_eq("2015-01-02", day);
+
+        let month = CivilMonth::from(day);
+        expect_eq("2015-01", month);
+
+        let year = CivilYear::from(month);
+        expect_eq("2015", year);
+
+        // From larger units -> smaller units
+        let month = CivilMonth::from(year);
+        expect_eq("2015-01", month);
+
+        let day = CivilDay::from(month);
+        expect_eq("2015-01-01", day);
+
+        let hour = CivilHour::from(day);
+        expect_eq("2015-01-01T00", hour);
+
+        let minute = CivilMinute::from(hour);
+        expect_eq("2015-01-01T00:00", minute);
+
+        let second = CivilSecond::from(minute);
+        expect_eq("2015-01-01T00:00:00", second);
     }
 }
