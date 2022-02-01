@@ -4,6 +4,7 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 mod alignment;
+mod compare;
 mod convert;
 mod core;
 mod weekday;
