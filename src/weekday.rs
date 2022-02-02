@@ -1,9 +1,10 @@
 //! Weekday and related utilities.
 
 use crate::{CivilDay, CivilHour, CivilMinute, CivilSecond, DiffType, YearType};
+use std::fmt;
 
 /// The day of week.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Weekday {
     /// Monday.
     Mon,
@@ -51,6 +52,20 @@ impl Weekday {
     pub(crate) const fn equals(&self, other: Weekday) -> bool {
         // Can't call PartialEq/Eq in const function.
         *self as usize == other as usize
+    }
+}
+
+impl fmt::Debug for Weekday {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match *self {
+            Weekday::Mon => "Mon",
+            Weekday::Tue => "Tue",
+            Weekday::Wed => "Wed",
+            Weekday::Thu => "Thu",
+            Weekday::Fri => "Fri",
+            Weekday::Sat => "Sat",
+            Weekday::Sun => "Sun",
+        })
     }
 }
 
@@ -140,3 +155,74 @@ impl_weekday_ops!(CivilSecond);
 impl_weekday_ops!(CivilMinute);
 impl_weekday_ops!(CivilHour);
 impl_weekday_ops!(CivilDay);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tests::expect_eq;
+
+    #[test]
+    fn test_debug_format() {
+        expect_eq("Mon", Weekday::Mon);
+        expect_eq("Tue", Weekday::Tue);
+        expect_eq("Wed", Weekday::Wed);
+        expect_eq("Thu", Weekday::Thu);
+        expect_eq("Fri", Weekday::Fri);
+        expect_eq("Sat", Weekday::Sat);
+        expect_eq("Sun", Weekday::Sun);
+    }
+
+    #[test]
+    fn test_next_prev_weekday() {
+        // Jan 1, 1970 was a Thursday.
+        let thursday = CivilDay::new(1970, 1, 1);
+        assert_eq!(Weekday::Thu, thursday.weekday());
+
+        // Thursday -> Thursday
+        let d = thursday.next_weekday(Weekday::Thu);
+        assert_eq!(7, d - thursday);
+        assert_eq!(d - 14, thursday.prev_weekday(Weekday::Thu));
+
+        // Thursday -> Friday
+        let d = thursday.next_weekday(Weekday::Fri);
+        assert_eq!(1, d - thursday);
+        assert_eq!(d - 7, thursday.prev_weekday(Weekday::Fri));
+
+        // Thursday -> Saturday
+        let d = thursday.next_weekday(Weekday::Sat);
+        assert_eq!(2, d - thursday);
+        assert_eq!(d - 7, thursday.prev_weekday(Weekday::Sat));
+
+        // Thursday -> Sunday
+        let d = thursday.next_weekday(Weekday::Sun);
+        assert_eq!(3, d - thursday);
+        assert_eq!(d - 7, thursday.prev_weekday(Weekday::Sun));
+
+        // Thursday -> Monday
+        let d = thursday.next_weekday(Weekday::Mon);
+        assert_eq!(4, d - thursday);
+        assert_eq!(d - 7, thursday.prev_weekday(Weekday::Mon));
+
+        // Thursday -> Tuesday
+        let d = thursday.next_weekday(Weekday::Tue);
+        assert_eq!(5, d - thursday);
+        assert_eq!(d - 7, thursday.prev_weekday(Weekday::Tue));
+
+        // Thursday -> Wednesday
+        let d = thursday.next_weekday(Weekday::Wed);
+        assert_eq!(6, d - thursday);
+        assert_eq!(d - 7, thursday.prev_weekday(Weekday::Wed));
+    }
+
+    #[test]
+    fn test_first_thursday_in_month() {
+        let nov1 = CivilDay::new(2014, 11, 1);
+        let thursday = (nov1 - 1).next_weekday(Weekday::Thu);
+        expect_eq("2014-11-06", thursday);
+
+        // Bonus: Date of Thanksgiving in the United States
+        // Rule: Fourth Thursday of November
+        let thanksgiving = thursday + 7 * 3;
+        expect_eq("2014-11-27", thanksgiving);
+    }
+}

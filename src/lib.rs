@@ -1013,5 +1013,336 @@ pub mod tests {
         );
     }
 
+    #[test]
+    fn test_arithmetic() {
+        let mut second = CivilSecond::new(2015, 1, 2, 3, 4, 5);
+        second += 1;
+        expect_eq("2015-01-02T03:04:06", second);
+        expect_eq("2015-01-02T03:04:07", second + 1);
+        expect_eq("2015-01-02T03:04:05", second - 1);
+        second -= 1;
+        expect_eq("2015-01-02T03:04:05", second);
+
+        let mut minute = CivilMinute::new(2015, 1, 2, 3, 4);
+        minute += 1;
+        expect_eq("2015-01-02T03:05", minute);
+        expect_eq("2015-01-02T03:06", minute + 1);
+        expect_eq("2015-01-02T03:04", minute - 1);
+        minute -= 1;
+        expect_eq("2015-01-02T03:04", minute);
+
+        let mut hour = CivilHour::new(2015, 1, 2, 3);
+        hour += 1;
+        expect_eq("2015-01-02T04", hour);
+        expect_eq("2015-01-02T05", hour + 1);
+        expect_eq("2015-01-02T03", hour - 1);
+        hour -= 1;
+        expect_eq("2015-01-02T03", hour);
+
+        let mut day = CivilDay::new(2015, 1, 2);
+        day += 1;
+        expect_eq("2015-01-03", day);
+        expect_eq("2015-01-04", day + 1);
+        expect_eq("2015-01-02", day - 1);
+        day -= 1;
+        expect_eq("2015-01-02", day);
+
+        let mut month = CivilMonth::new(2015, 1);
+        month += 1;
+        expect_eq("2015-02", month);
+        expect_eq("2015-03", month + 1);
+        expect_eq("2015-01", month - 1);
+        month -= 1;
+        expect_eq("2015-01", month);
+
+        let mut year = CivilYear::new(2015);
+        year += 1;
+        expect_eq("2016", year);
+        expect_eq("2017", year + 1);
+        expect_eq("2015", year - 1);
+        year -= 1;
+        expect_eq("2015", year);
+    }
+
+    #[test]
+    fn test_arithmetic_limits() {
+        let (max, min) = (i64::from(i32::MAX), i64::from(i32::MIN));
+
+        let mut second = CivilSecond::new(1970, 1, 1, 0, 0, 0);
+        second += max;
+        expect_eq("2038-01-19T03:14:07", second);
+        second -= max;
+        expect_eq("1970-01-01T00:00:00", second);
+        second += min;
+        expect_eq("1901-12-13T20:45:52", second);
+        second -= min;
+        expect_eq("1970-01-01T00:00:00", second);
+
+        let mut minute = CivilMinute::new(1970, 1, 1, 0, 0);
+        minute += max;
+        expect_eq("6053-01-23T02:07", minute);
+        minute -= max;
+        expect_eq("1970-01-01T00:00", minute);
+        minute += min;
+        expect_eq("-2114-12-08T21:52", minute);
+        minute -= min;
+        expect_eq("1970-01-01T00:00", minute);
+
+        let mut hour = CivilHour::new(1970, 1, 1, 0);
+        hour += max;
+        expect_eq("246953-10-09T07", hour);
+        hour -= max;
+        expect_eq("1970-01-01T00", hour);
+        hour += min;
+        expect_eq("-243014-03-24T16", hour);
+        hour -= min;
+        expect_eq("1970-01-01T00", hour);
+
+        let mut day = CivilDay::new(1970, 1, 1);
+        day += max;
+        expect_eq("5881580-07-11", day);
+        day -= max;
+        expect_eq("1970-01-01", day);
+        day += min;
+        expect_eq("-5877641-06-23", day);
+        day -= min;
+        expect_eq("1970-01-01", day);
+
+        let mut month = CivilMonth::new(1970, 1);
+        month += max;
+        expect_eq("178958940-08", month);
+        month -= max;
+        expect_eq("1970-01", month);
+        month += min;
+        expect_eq("-178955001-05", month);
+        month -= min;
+        expect_eq("1970-01", month);
+
+        let mut year = CivilYear::new(0);
+        year += max;
+        expect_eq("2147483647", year);
+        year -= max;
+        expect_eq("0", year);
+        year += min;
+        expect_eq("-2147483648", year);
+        year -= min;
+        expect_eq("0", year);
+    }
+
+    #[test]
+    fn test_arithmetic_difference() {
+        let second = CivilSecond::new(2015, 1, 2, 3, 4, 5);
+        assert_eq!(0, second - second);
+        assert_eq!(10, (second + 10) - second);
+        assert_eq!(-10, (second - 10) - second);
+
+        let minute = CivilMinute::new(2015, 1, 2, 3, 4);
+        assert_eq!(0, minute - minute);
+        assert_eq!(10, (minute + 10) - minute);
+        assert_eq!(-10, (minute - 10) - minute);
+
+        let hour = CivilHour::new(2015, 1, 2, 3);
+        assert_eq!(0, hour - hour);
+        assert_eq!(10, (hour + 10) - hour);
+        assert_eq!(-10, (hour - 10) - hour);
+
+        let day = CivilDay::new(2015, 1, 2);
+        assert_eq!(0, day - day);
+        assert_eq!(10, (day + 10) - day);
+        assert_eq!(-10, (day - 10) - day);
+
+        let month = CivilMonth::new(2015, 1);
+        assert_eq!(0, month - month);
+        assert_eq!(10, (month + 10) - month);
+        assert_eq!(-10, (month - 10) - month);
+
+        let year = CivilYear::new(2015);
+        assert_eq!(0, year - year);
+        assert_eq!(10, (year + 10) - year);
+        assert_eq!(-10, (year - 10) - year);
+    }
+
+    #[test]
+    fn test_difference_limits() {
+        let (max, min) = (i64::MAX, i64::MIN);
+
+        // Check day arithmetic at the end of the year range.
+        let max_day = CivilDay::new(max, 12, 31);
+        assert_eq!(1, max_day - (max_day - 1));
+        assert_eq!(-1, (max_day - 1) - max_day);
+
+        // Check day arithmetic at the end of the year range.
+        let min_day = CivilDay::new(min, 1, 1);
+        assert_eq!(1, (min_day + 1) - min_day);
+        assert_eq!(-1, min_day - (min_day + 1));
+
+        let (d1, d2) = (CivilDay::new(1970, 1, 1), CivilDay::new(5881580, 7, 11));
+        assert_eq!(i64::from(i32::MAX), d2 - d1);
+        assert_eq!(i64::from(i32::MIN), d1 - (d2 + 1));
+    }
+
+    #[test]
+    fn test_properties() {
+        let ss = CivilSecond::new(2015, 2, 3, 4, 5, 6);
+        assert_eq!(2015, ss.year());
+        assert_eq!(2, ss.month());
+        assert_eq!(3, ss.day());
+        assert_eq!(4, ss.hour());
+        assert_eq!(5, ss.minute());
+        assert_eq!(6, ss.second());
+        assert_eq!(Weekday::Tue, ss.weekday());
+        assert_eq!(34, ss.yearday());
+
+        let mm = Builder::new()
+            .year(2015)
+            .month(2)
+            .day(3)
+            .hour(4)
+            .minute(5)
+            .second(6)
+            .build_minute();
+        assert_eq!(2015, mm.year());
+        assert_eq!(2, mm.month());
+        assert_eq!(3, mm.day());
+        assert_eq!(4, mm.hour());
+        assert_eq!(5, mm.minute());
+        assert_eq!(0, mm.second());
+        assert_eq!(Weekday::Tue, mm.weekday());
+        assert_eq!(34, mm.yearday());
+
+        let hh = Builder::new()
+            .year(2015)
+            .month(2)
+            .day(3)
+            .hour(4)
+            .minute(5)
+            .second(6)
+            .build_hour();
+        assert_eq!(2015, hh.year());
+        assert_eq!(2, hh.month());
+        assert_eq!(3, hh.day());
+        assert_eq!(4, hh.hour());
+        assert_eq!(0, hh.minute());
+        assert_eq!(0, hh.second());
+        assert_eq!(Weekday::Tue, hh.weekday());
+        assert_eq!(34, hh.yearday());
+
+        let d = Builder::new()
+            .year(2015)
+            .month(2)
+            .day(3)
+            .hour(4)
+            .minute(5)
+            .second(6)
+            .build_day();
+        assert_eq!(2015, d.year());
+        assert_eq!(2, d.month());
+        assert_eq!(3, d.day());
+        assert_eq!(0, d.hour());
+        assert_eq!(0, d.minute());
+        assert_eq!(0, d.second());
+        assert_eq!(Weekday::Tue, d.weekday());
+        assert_eq!(34, d.yearday());
+
+        let m = Builder::new()
+            .year(2015)
+            .month(2)
+            .day(3)
+            .hour(4)
+            .minute(5)
+            .second(6)
+            .build_month();
+        assert_eq!(2015, m.year());
+        assert_eq!(2, m.month());
+        assert_eq!(1, m.day());
+        assert_eq!(0, m.hour());
+        assert_eq!(0, m.minute());
+        assert_eq!(0, m.second());
+        assert_eq!(Weekday::Sun, m.weekday());
+        assert_eq!(32, m.yearday());
+
+        let y = Builder::new()
+            .year(2015)
+            .month(2)
+            .day(3)
+            .hour(4)
+            .minute(5)
+            .second(6)
+            .build_year();
+        assert_eq!(2015, y.year());
+        assert_eq!(1, y.month());
+        assert_eq!(1, y.day());
+        assert_eq!(0, y.hour());
+        assert_eq!(0, y.minute());
+        assert_eq!(0, y.second());
+        assert_eq!(Weekday::Thu, y.weekday());
+        assert_eq!(1, y.yearday());
+    }
+
+    #[test]
+    fn test_debug_format() {
+        // Tests formatting of CivilYear, which does not pad.
+        expect_eq("2016", CivilYear::new(2016));
+        expect_eq("123", CivilYear::new(123));
+        expect_eq("0", CivilYear::new(0));
+        expect_eq("-1", CivilYear::new(-1));
+
+        // Tests formatting of sub-year types, which pad to 2 digits.
+        expect_eq("2016-02", CivilMonth::new(2016, 2));
+        expect_eq("2016-02-03", CivilDay::new(2016, 2, 3));
+        expect_eq("2016-02-03T04", CivilHour::new(2016, 2, 3, 4));
+        expect_eq("2016-02-03T04:05", CivilMinute::new(2016, 2, 3, 4, 5));
+        expect_eq("2016-02-03T04:05:06", CivilSecond::new(2016, 2, 3, 4, 5, 6));
+    }
+
+    #[test]
+    fn test_normalize_with_huge_year() {
+        let c = CivilMonth::new(9223372036854775807, 1);
+        expect_eq("9223372036854775807-01", c);
+        // Causes normalization
+        let c = c - 1;
+        expect_eq("9223372036854775806-12", c);
+
+        let c = CivilMonth::new(-9223372036854775807 - 1, 1);
+        expect_eq("-9223372036854775808-01", c);
+        // Causes normalization
+        let c = c + 12;
+        expect_eq("-9223372036854775807-01", c);
+    }
+
+    #[test]
+    fn test_leap_years() {
+        // Test data for leap years.
+        let leap_year_table = [
+            // (year, days, month and day after Feb 28)
+            (1900, 365, 3, 1),
+            (1999, 365, 3, 1),
+            (2000, 366, 2, 29), // leap year
+            (2001, 365, 3, 1),
+            (2002, 365, 3, 1),
+            (2003, 365, 3, 1),
+            (2004, 366, 2, 29), // leap year
+            (2005, 365, 3, 1),
+            (2006, 365, 3, 1),
+            (2007, 365, 3, 1),
+            (2008, 366, 2, 29), // leap year
+            (2009, 365, 3, 1),
+            (2100, 365, 3, 1),
+        ];
+
+        for e in leap_year_table {
+            // Tests incrementing through the leap day.
+            let feb28 = CivilDay::new(e.0, 2, 28);
+            let next_day = feb28 + 1;
+            assert_eq!(e.2, next_day.month());
+            assert_eq!(e.3, next_day.day());
+
+            // Tests difference in days of leap years.
+            let year = CivilYear::from(feb28);
+            let next_year = year + 1;
+            assert_eq!(e.1, CivilDay::from(next_year) - CivilDay::from(year));
+        }
+    }
+
     // TODO(evenyag): Add/Sub/Difference/Compare test without const.
 }
