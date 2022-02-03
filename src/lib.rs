@@ -1,3 +1,347 @@
+//! # Civil Time
+//!
+//! This is a library ported the civil time classes and functions from
+//! Google's [cctz](https://github.com/google/cctz) library.
+//!
+//! The term "civil time" refers to the legally recognized human-scale time
+//! that is represented by the six fields YYYY-MM-DD hh:mm:ss. Modern-day civil
+//! time follows the Gregorian Calendar and is a time-zone-independent concept.
+//! A "date" is perhaps the most common example of a civil time (represented in
+//! this library as [`CivilDay`]). This library provides six structs that help
+//! with rounding, iterating, and arithmetic on civil times while avoiding complications
+//! like daylight-saving time (DST).
+//!
+//! ## Overview
+//!
+//! The following six structs form the core of this civil-time library:
+//! - [`CivilSecond`]
+//! - [`CivilMinute`]
+//! - [`CivilHour`]
+//! - [`CivilDay`]
+//! - [`CivilMonth`]
+//! - [`CivilYear`]
+//!
+//! Each struct is a simple value type with the same six accessors for each of the
+//! civil fields (year, month, day, hour, minute, and second, aka YMDHMS). These structs
+//! differ in their alignment, which is indicated by the type name and specifies the field on
+//! which arithmetic operates.
+//!
+//! Each struct can be constructed by passing several integer arguments represeting the YMDHMS
+//! fields (in that order) according to its alignment (one argument for [`CivilYear::new()`](CivilYear::new)
+//! and up to six arguments for [`CivilSecond::new()`](CivilSecond::new)) to the `new()` method.
+//! Remaining fields are assigned their minimum valid value. Hours, minutes, and seconds will be set to 0,
+//! month and day will be set to 1, and since there is no minimum valid year, it will be set to 1970.
+//! A default civil time struct will have YMDHMS fields representing "1970-01-01 00:00:00".
+//! Fields that are out-of-range are normalized (e.g., October 32 -> November 1) so that all
+//! civil-time structs represent valid values.
+//!
+//! Each civil-time struct is aligned to the civil-time field indicated in thate
+//! struct's name after normalization. Alignment is performed by setting all the
+//! inferior fields to their minimum valid value (as described above). The
+//! following are examples of how each of the six types would align the fields
+//! representing November 22, 2015 at 12:34:56 in the afternoon. (Note: the
+//! string format used here is not important; it's just a shorthand way of
+//! showing the six YMDHMS fields.)
+//!
+//! - [CivilSecond]  e.g. 2015-11-22 12:34:56
+//! - [CivilMinute]  e.g. 2015-11-22 12:34:00
+//! - [CivilHour]    e.g. 2015-11-22 12:00:00
+//! - [CivilDay]     e.g. 2015-11-22 00:00:00
+//! - [CivilMonth]   e.g. 2015-11-01 00:00:00
+//! - [CivilYear]    e.g. 2015-01-01 00:00:00
+//!
+//! Each civil-time type performs arithmetic on the field to which it is
+//! aligned. This means that adding 1 to a [CivilDay] increments the day field
+//! (normalizing as necessary), and subtracting 7 from a [CivilMonth] operates
+//! on the month field (normalizing as necessary). All arithmetic produces a
+//! valid civil time. Difference requires two similarly aligned civil-time
+//! structs and returns the scalar answer in units of the structs' alignment.
+//! For example, the difference between two [CivilHour] structs will give an
+//! answer in units of civil hours.
+//!
+//! ### Construction
+//!
+//! Each of the civil-time types can be constructed by `default()` method, or by directly
+//! passing to the constructor up to six integers representing the
+//! YMDHMS fields, or by [`build()`](`Builder::build`) method of the [`Builder`].
+//!
+//! ```rust
+//! use civil_time::{Builder, CivilDay, CivilHour, CivilMinute, CivilMonth, CivilSecond, CivilYear};
+//!
+//! // Default value is "1970-01-01 00:00:00"
+//! let default_value = CivilDay::default();
+//! assert_eq!("1970-01-01", format!("{:?}", default_value));
+//!
+//! // Constructed by new(), e.g. "2015-02-03 00:00:00"
+//! let a = CivilDay::new(2015, 2, 3);
+//! assert_eq!("2015-02-03", format!("{:?}", a));
+//!
+//! // Constructed by Builder, e.g. "2015-01-01 00:00:00"
+//! let b = Builder::new().year(2015).build_day();
+//! assert_eq!("2015-01-01", format!("{:?}", b));
+//!
+//! // Constructed by Builder::build(), e.g. "2015-02-03 00:00:00"
+//! let c: CivilDay = Builder::new()
+//!     .year(2015)
+//!     .month(2)
+//!     .day(3)
+//!     .hour(4)
+//!     .minute(5)
+//!     .second(6)
+//!     .build();
+//! assert_eq!("2015-02-03", format!("{:?}", c));
+//!
+//! // e.g. "2015-02-03 04:05:06"
+//! let ss = CivilSecond::new(2015, 2, 3, 4, 5, 6);
+//! assert_eq!("2015-02-03T04:05:06", format!("{:?}", ss));
+//!
+//! // e.g. "2015-02-03 04:05:00"
+//! let mm = CivilMinute::new(2015, 2, 3, 4, 5);
+//! assert_eq!("2015-02-03T04:05", format!("{:?}", mm));
+//!
+//! // e.g. "2015-02-03 04:00:00"
+//! let hh = CivilHour::new(2015, 2, 3, 4);
+//! assert_eq!("2015-02-03T04", format!("{:?}", hh));
+//!
+//! // e.g. "2015-02-03 00:00:00"
+//! let d = CivilDay::new(2015, 2, 3);
+//! assert_eq!("2015-02-03", format!("{:?}", d));
+//!
+//! // e.g. "2015-02-01 00:00:00"
+//! let m = CivilMonth::new(2015, 2);
+//! assert_eq!("2015-02", format!("{:?}", m));
+//!
+//! // e.g. "2015-01-01 00:00:00"
+//! let y = CivilYear::new(2015);
+//! assert_eq!("2015", format!("{:?}", y));
+//! ```
+//!
+//! ### Conversion
+//!
+//! The alignment of a civil-time struct cannot change, but the struct may be
+//! used to construct a new struct with a different alignment. This is referred
+//! to as "realigning" and can be done by the `from()` method.
+//!
+//! ```rust
+//! use civil_time::{CivilDay, CivilHour, CivilMinute, CivilMonth, CivilSecond, CivilYear};
+//!
+//! // e.g. "2015-02-03T04:05:06"
+//! let ss = CivilSecond::new(2015, 2, 3, 4, 5, 6);
+//! assert_eq!("2015-02-03T04:05:06", format!("{:?}", ss));
+//! // e.g. "2015-02-03 04:05:00"
+//! let mm = CivilMinute::from(ss);
+//! assert_eq!("2015-02-03T04:05", format!("{:?}", mm));
+//! // e.g. "2015-02-03 04:00:00"
+//! let hh = CivilHour::from(mm);
+//! assert_eq!("2015-02-03T04", format!("{:?}", hh));
+//! // e.g. "2015-02-03 00:00:00"
+//! let d = CivilDay::from(hh);
+//! assert_eq!("2015-02-03", format!("{:?}", d));
+//! // e.g. "2015-02-01 00:00:00"
+//! let m = CivilMonth::from(d);
+//! assert_eq!("2015-02", format!("{:?}", m));
+//! // e.g. "2015-01-01 00:00:00"
+//! let y = CivilYear::from(m);
+//! assert_eq!("2015", format!("{:?}", y));
+//! ```
+//!
+//! ### Normalization
+//! Integer arguments passed to the `new()` may be out-of-range, in which
+//! case they are normalized to produce a valid civil-time struct. This enables
+//! natural arithmetic on `new()` arguments without worrying about the
+//! field's range. Normalization guarantees that there are no invalid
+//! civil-time structs.
+//!
+//! ```rust
+//! use civil_time::CivilDay;
+//!
+//! // Out-of-range day; normalized to 2016-11-01
+//! let d = CivilDay::new(2016, 10, 32);
+//! assert_eq!("2016-11-01", format!("{:?}", d));
+//! ```
+//!
+//! Note: If normalization is undesired, you can signal an error by comparing
+//! the `new()` arguments to the normalized values returned by the YMDHMS
+//! properties.
+//!
+//! ### Properties
+//! All civil-time types have accessors for all six of the civil-time fields:
+//! year, month, day, hour, minute, and second. Recall that fields inferior to
+//! the type's alignment will be set to their minimum valid value.
+//!
+//! ```rust
+//! use civil_time::CivilDay;
+//!
+//! let d = CivilDay::new(2015, 6, 28);
+//! assert_eq!(2015, d.year());
+//! assert_eq!(6, d.month());
+//! assert_eq!(28, d.day());
+//! assert_eq!(0, d.hour());
+//! assert_eq!(0, d.minute());
+//! assert_eq!(0, d.second());
+//! ```
+//!
+//! ### Comparision
+//!
+//! Comparison always considers all six YMDHMS fields, regardless of the type's
+//! alignment. Comparison between differently aligned civil-time types is
+//! allowed.
+//!
+//! ```rust
+//! use civil_time::{CivilDay, CivilSecond, CivilYear};
+//!
+//! let feb_3 = CivilDay::new(2015, 2, 3); // 2015-02-03 00:00:00
+//! let mar_4 = CivilDay::new(2015, 3, 4); // 2015-03-04 00:00:00
+//! assert!(feb_3 < mar_4);
+//! assert_eq!(CivilYear::from(feb_3), CivilYear::from(mar_4));
+//!
+//! let feb_3_noon = CivilSecond::new(2015, 2, 3, 12, 0, 0); // 2015-02-03 12:00:00
+//! assert!(feb_3 < feb_3_noon);
+//! assert_eq!(feb_3, CivilDay::from(feb_3_noon));
+//! ```
+//!
+//! ### Arithmetic
+//!
+//! Civil-time types support natural arithmetic operators such as addition,
+//! subtraction, and difference. Arithmetic operates on the civil-time field
+//! indicated in the type's name. Difference requires arguments with the same
+//! alignment and returns the answer in units of the alignment.
+//!
+//! ```rust
+//! use civil_time::{CivilDay, CivilMonth};
+//!
+//! let mut a = CivilDay::new(2015, 2, 3);
+//! a += 1;
+//! assert_eq!("2015-02-04", format!("{:?}", a));
+//! a -= 1;
+//! assert_eq!("2015-02-03", format!("{:?}", a));
+//!
+//! let b = a + 1;
+//! assert_eq!("2015-02-04", format!("{:?}", b));
+//! let c = b + 1;
+//! assert_eq!("2015-02-05", format!("{:?}", c));
+//!
+//! let n = c - a;
+//! assert_eq!(2, n);
+//! // let m = c - CivilMonth::from(c); // Won't compile: different types.
+//! ```
+//!
+//! ### Example: Adding a month to January 31.
+//!
+//! One of the classic questions that arises when considering a civil-time
+//! library (or a date library or a date/time library) is this: "What happens
+//! when you add a month to January 31?" This is an interesting question
+//! because there could be a number of possible answers:
+//!
+//! 1. March 3 (or 2 if a leap year). This may make sense if the operation
+//!    wants the equivalent of February 31.
+//! 2. February 28 (or 29 if a leap year). This may make sense if the operation
+//!    wants the last day of January to go to the last day of February.
+//! 3. Error. The caller may get some error, an exception, an invalid date
+//!    object, or maybe false is returned. This may make sense because there is
+//!    no single unambiguously correct answer to the question.
+//!
+//! Practically speaking, any answer that is not what the programmer intended
+//! is the wrong answer.
+//!
+//! This civil-time library avoids the problem by making it impossible to ask
+//! ambiguous questions. All civil-time structs are aligned to a particular
+//! civil-field boundary (such as aligned to a year, month, day, hour, minute,
+//! or second), and arithmetic operates on the field to which the struct is
+//! aligned. This means that in order to "add a month" the struct must first be
+//! aligned to a month boundary, which is equivalent to the first day of that
+//! month.
+//!
+//! Of course, there are ways to compute an answer the question at hand using
+//! this civil-time library, but they require the programmer to be explicit
+//! about the answer they expect. To illustrate, let's see how to compute all
+//! three of the above possible answers to the question of "Jan 31 plus 1
+//! month":
+//!
+//! ```rust
+//! use civil_time::{CivilDay, CivilMonth};
+//!
+//! let d = CivilDay::new(2015, 1, 31);
+//!
+//! // Answer 1:
+//! // Add 1 to the month field in the `new()`, and rely on normalization.
+//! let ans_normalized = CivilDay::new(d.year(), (d.month() + 1).into(), d.day().into());
+//! assert_eq!("2015-03-03", format!("{:?}", ans_normalized));
+//!
+//! // Answer 2:
+//! // Add 1 to month field, capping to the end of next month.
+//! let next_month = CivilMonth::from(d) + 1;
+//! let last_day_of_next_month = CivilDay::from(next_month + 1) - 1;
+//! let ans_capped = std::cmp::min(ans_normalized, last_day_of_next_month);
+//! assert_eq!("2015-02-28", format!("{:?}", ans_capped));
+//!
+//! // Answer 3:
+//! // Signal an error if the normalized answer is not in next month.
+//! if CivilMonth::from(ans_normalized) != next_month {
+//!     // error, month overflow
+//! }
+//! ```
+//!
+//! ### Weekday
+//!
+//! Returns the weekday for the given civil-time value.
+//!
+//! ```rust
+//! use civil_time::{CivilDay, Weekday};
+//!
+//! let a = CivilDay::new(2015, 8, 13);
+//! assert_eq!(Weekday::Thu, a.weekday());
+//! ```
+//!
+//! Returns the [CivilDay] that strictly follows or precedes the given
+//! [CivilDay], and that falls on the given weekday.
+//!
+//! For example, given:
+//!
+//! ```text
+//!     August 2015
+//! Su Mo Tu We Th Fr Sa
+//!                    1
+//!  2  3  4  5  6  7  8
+//!  9 10 11 12 13 14 15
+//! 16 17 18 19 20 21 22
+//! 23 24 25 26 27 28 29
+//! 30 31
+//! ```
+//!
+//! ```rust
+//! use civil_time::{CivilDay, Weekday};
+//!
+//! let a = CivilDay::new(2015, 8, 13);
+//! assert_eq!(Weekday::Thu, a.weekday());
+//! let b = a.next_weekday(Weekday::Thu);
+//! assert_eq!("2015-08-20", format!("{:?}", b));
+//! let c = a.prev_weekday(Weekday::Thu);
+//! assert_eq!("2015-08-06", format!("{:?}", c));
+//!
+//! let d = a - 1;
+//! // Gets the following Thursday if d is not already Thursday
+//! let thurs1 = d.next_weekday(Weekday::Thu);
+//! assert_eq!("2015-08-13", format!("{:?}", thurs1));
+//! //  Gets the previous Thursday if d is not already Thursday
+//! let d = a + 1;
+//! let thurs2 = d.prev_weekday(Weekday::Thu);
+//! assert_eq!("2015-08-13", format!("{:?}", thurs2));
+//! ```
+//!
+//! ### Yearday
+//!
+//! Returns the day-of-year for the given civil-time value.
+//!
+//! ```rust
+//! use civil_time::CivilDay;
+//!
+//! let a = CivilDay::new(2015, 1, 1);
+//! assert_eq!(1, a.yearday());
+//! let b = CivilDay::new(2015, 12, 31);
+//! assert_eq!(365, b.yearday());
+//! ```
+
 use crate::alignment::{Day, Hour, Minute, Month, Second, Year};
 use crate::core::Fields;
 use std::fmt;
@@ -12,7 +356,10 @@ mod weekday;
 pub use crate::core::{DiffType, YearType};
 pub use crate::weekday::Weekday;
 
+/// Helper trait to construct a civil time type.
 pub trait BuildCivilTime {
+    /// Build civil time types by given year `y`, month `m`, day `d`,
+    /// hour `hh`, minute `mm` and second `ss`.
     fn build_from_ymd_hms(
         y: YearType,
         m: DiffType,
@@ -26,8 +373,62 @@ pub trait BuildCivilTime {
 macro_rules! impl_civil_time_type {
     ($Type: ident, $Alignment: ident) => {
         impl $Type {
+            /// Maximum representable civil time.
             pub const MAX: $Type = $Type::from_ymd_hms(DiffType::MAX, 12, 31, 23, 59, 59);
+            /// Minimum representable civil time.
             pub const MIN: $Type = $Type::from_ymd_hms(DiffType::MIN, 1, 1, 0, 0, 0);
+
+            /// Get the year of the given civil-time value.
+            pub const fn year(&self) -> YearType {
+                self.0.y
+            }
+
+            /// Get the month of the given civil-time value.
+            ///
+            /// The return value ranges from 1 to 12.
+            pub const fn month(&self) -> i32 {
+                self.0.m as i32
+            }
+
+            /// Get the day of the given civil-time value.
+            ///
+            /// The return value ranges from 1 to 31.
+            pub const fn day(&self) -> i32 {
+                self.0.d as i32
+            }
+
+            /// Get the hour of the given civil-time value.
+            ///
+            /// The return value ranges from 0 to 23.
+            pub const fn hour(&self) -> i32 {
+                self.0.hh as i32
+            }
+
+            /// Get the minute of the given civil-time value.
+            ///
+            /// The return value ranges from 0 to 59.
+            pub const fn minute(&self) -> i32 {
+                self.0.mm as i32
+            }
+
+            /// Get the second of the given civil-time value.
+            ///
+            /// The return value ranges from 0 to 59.
+            pub const fn second(&self) -> i32 {
+                self.0.ss as i32
+            }
+
+            /// Returns the weekday for the given civil-time value.
+            pub const fn weekday(&self) -> Weekday {
+                Weekday::from_second(CivilSecond::from_fields(self.0))
+            }
+
+            /// Returns the day-of-year for the given civil-time value.
+            ///
+            /// The return value ranges from 1 to 366.
+            pub const fn yearday(&self) -> i32 {
+                get_yearday(CivilSecond::from_fields(self.0))
+            }
 
             const fn from_fields(fields: Fields) -> Self {
                 $Type($Alignment::align(fields))
@@ -44,38 +445,6 @@ macro_rules! impl_civil_time_type {
                 let fields = Fields::n_sec(y, m, d, hh, mm, ss);
 
                 Self::from_fields(fields)
-            }
-
-            pub const fn year(&self) -> YearType {
-                self.0.y
-            }
-
-            pub const fn month(&self) -> i32 {
-                self.0.m as i32
-            }
-
-            pub const fn day(&self) -> i32 {
-                self.0.d as i32
-            }
-
-            pub const fn hour(&self) -> i32 {
-                self.0.hh as i32
-            }
-
-            pub const fn minute(&self) -> i32 {
-                self.0.mm as i32
-            }
-
-            pub const fn second(&self) -> i32 {
-                self.0.ss as i32
-            }
-
-            pub const fn weekday(&self) -> Weekday {
-                Weekday::from_second(CivilSecond::from_fields(self.0))
-            }
-
-            pub const fn yearday(&self) -> i32 {
-                get_yearday(CivilSecond::from_fields(self.0))
             }
 
             const fn add_diff(self, n: DiffType) -> Self {
@@ -156,10 +525,13 @@ macro_rules! impl_civil_time_type {
     };
 }
 
+/// Civil time in second alignment.
 #[derive(Clone, Copy)]
 pub struct CivilSecond(Fields);
 
 impl CivilSecond {
+    /// Construct a [CivilSecond] instance by given year `y`, month `m`, day `d`,
+    /// hour `hh`, minute `mm` and second `ss`.
     pub const fn new(
         y: YearType,
         m: DiffType,
@@ -187,10 +559,13 @@ impl fmt::Debug for CivilSecond {
     }
 }
 
+/// Civil time in minute alignment.
 #[derive(Clone, Copy)]
 pub struct CivilMinute(Fields);
 
 impl CivilMinute {
+    /// Construct a [CivilMinute] instance by given year `y`, month `m`, day `d`,
+    /// hour `hh`, minute `mm`.
     pub const fn new(y: YearType, m: DiffType, d: DiffType, hh: DiffType, mm: DiffType) -> Self {
         Self::from_ymd_hms(y, m, d, hh, mm, 0)
     }
@@ -210,10 +585,13 @@ impl fmt::Debug for CivilMinute {
     }
 }
 
+/// Civil time in hour alignment.
 #[derive(Clone, Copy)]
 pub struct CivilHour(Fields);
 
 impl CivilHour {
+    /// Construct a [CivilHour] instance by given year `y`, month `m`, day `d`,
+    /// hour `hh`.
     pub const fn new(y: YearType, m: DiffType, d: DiffType, hh: DiffType) -> Self {
         Self::from_ymd_hms(y, m, d, hh, 0, 0)
     }
@@ -232,10 +610,12 @@ impl fmt::Debug for CivilHour {
     }
 }
 
+/// Civil time in day alignment.
 #[derive(Clone, Copy)]
 pub struct CivilDay(Fields);
 
 impl CivilDay {
+    /// Construct a [CivilDay] instance by given year `y`, month `m`, day `d`.
     pub const fn new(y: YearType, m: DiffType, d: DiffType) -> Self {
         Self::from_ymd_hms(y, m, d, 0, 0, 0)
     }
@@ -247,10 +627,12 @@ impl fmt::Debug for CivilDay {
     }
 }
 
+/// Civil time in month alignment.
 #[derive(Clone, Copy)]
 pub struct CivilMonth(Fields);
 
 impl CivilMonth {
+    /// Construct a [CivilMonth] instance by given year `y`, month `m`.
     pub const fn new(y: YearType, m: DiffType) -> Self {
         Self::from_ymd_hms(y, m, 1, 0, 0, 0)
     }
@@ -262,10 +644,12 @@ impl fmt::Debug for CivilMonth {
     }
 }
 
+/// Civil time in year alignment.
 #[derive(Clone, Copy)]
 pub struct CivilYear(Fields);
 
 impl CivilYear {
+    /// Construct a [CivilYear] instance by given year `y`.
     pub const fn new(y: YearType) -> Self {
         Self::from_ymd_hms(y, 1, 1, 0, 0, 0)
     }
@@ -294,6 +678,7 @@ const fn get_yearday(cs: CivilSecond) -> i32 {
     MONTH_OFFSETS[cs.month() as usize] + feb29 + cs.day()
 }
 
+/// A builder to build civil time instances.
 #[derive(Clone, Copy)]
 pub struct Builder {
     y: YearType,
@@ -305,6 +690,7 @@ pub struct Builder {
 }
 
 impl Builder {
+    /// Create a new [Builder] with default value.
     pub const fn new() -> Self {
         Self {
             y: 1970,
@@ -316,36 +702,50 @@ impl Builder {
         }
     }
 
+    /// Set the year field of the civil time instance.
     pub const fn year(mut self, y: YearType) -> Self {
         self.y = y;
         self
     }
 
+    /// Set the month field of the civil time instance.
     pub const fn month(mut self, m: DiffType) -> Self {
         self.m = m;
         self
     }
 
+    /// Set the day field of the civil time instance.
     pub const fn day(mut self, d: DiffType) -> Self {
         self.d = d;
         self
     }
 
+    /// Set the hour field of the civil time instance.
     pub const fn hour(mut self, hour: DiffType) -> Self {
         self.hh = hour;
         self
     }
 
+    /// Set the minute field of the civil time instance.
     pub const fn minute(mut self, minute: DiffType) -> Self {
         self.mm = minute;
         self
     }
 
+    /// Set the second field of the civil time instance.
     pub const fn second(mut self, second: DiffType) -> Self {
         self.ss = second;
         self
     }
 
+    /// Build a new civil time instance.
+    ///
+    /// ```rust
+    /// use civil_time::{Builder, CivilDay};
+    ///
+    /// let d: CivilDay = Builder::new().build();
+    /// assert_eq!("1970-01-01", format!("{:?}", d));
+    /// ```
     pub fn build<T: BuildCivilTime>(self) -> T {
         T::build_from_ymd_hms(self.y, self.m, self.d, self.hh, self.mm, self.ss)
     }
@@ -360,6 +760,7 @@ impl Default for Builder {
 macro_rules! impl_build {
     ($func: ident, $Type: ty) => {
         impl Builder {
+            /// Build civil time type of specific alignment.
             pub const fn $func(self) -> $Type {
                 <$Type>::from_ymd_hms(self.y, self.m, self.d, self.hh, self.mm, self.ss)
             }
@@ -375,6 +776,7 @@ impl_build!(build_day, CivilDay);
 impl_build!(build_month, CivilMonth);
 impl_build!(build_year, CivilYear);
 
+// TODO(evenyag): Port benchmarks.
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -1343,6 +1745,4 @@ pub mod tests {
             assert_eq!(e.1, CivilDay::from(next_year) - CivilDay::from(year));
         }
     }
-
-    // TODO(evenyag): Add/Sub/Difference/Compare test without const.
 }

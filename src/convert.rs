@@ -5,6 +5,7 @@ use crate::{CivilDay, CivilHour, CivilMinute, CivilMonth, CivilSecond, CivilYear
 macro_rules! impl_from {
     ($Type: ty, $func: ident, $Other: ty) => {
         impl $Type {
+            /// Create a new instance from given civil time instance.
             pub const fn $func(other: $Other) -> Self {
                 Self::from_fields(other.0)
             }

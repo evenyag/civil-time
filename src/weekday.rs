@@ -3,7 +3,8 @@
 use crate::{CivilDay, CivilHour, CivilMinute, CivilSecond, DiffType, YearType};
 use std::fmt;
 
-/// The day of week.
+/// An enum with members monday, tuesday, wednesday, thursday, friday,
+/// saturday, and sunday.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Weekday {
     /// Monday.
@@ -138,11 +139,15 @@ const fn prev_weekday(cd: CivilDay, wd: Weekday) -> CivilDay {
 macro_rules! impl_weekday_ops {
     ($Type: ty) => {
         impl $Type {
+            /// Returns the [CivilDay] that strictly follows the day of given
+            /// civil time, and that falls on the given weekday `wd`.
             pub const fn next_weekday(self, wd: Weekday) -> CivilDay {
                 let cd = CivilDay::from_fields(self.0);
                 next_weekday(cd, wd)
             }
 
+            /// Returns the [CivilDay] that strictly precedes the day of given
+            /// civil time, and that falls on the given weekday `wd`.
             pub const fn prev_weekday(self, wd: Weekday) -> CivilDay {
                 let cd = CivilDay::from_fields(self.0);
                 prev_weekday(cd, wd)
