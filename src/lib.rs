@@ -1,7 +1,7 @@
 //! # Civil Time
 //!
-//! This is a library ported the civil time classes and functions from
-//! Google's [cctz](https://github.com/google/cctz) library.
+//! This is a library ported from the [`civil_time`](https://github.com/google/cctz/blob/master/include/cctz/civil_time.h)
+//! library in [cctz](https://github.com/google/cctz).
 //!
 //! The term "civil time" refers to the legally recognized human-scale time
 //! that is represented by the six fields YYYY-MM-DD hh:mm:ss. Modern-day civil
@@ -28,7 +28,7 @@
 //!
 //! Each struct can be constructed by passing several integer arguments represeting the YMDHMS
 //! fields (in that order) according to its alignment (one argument for [`CivilYear::new()`](CivilYear::new)
-//! and up to six arguments for [`CivilSecond::new()`](CivilSecond::new)) to the `new()` method.
+//! and up to six arguments for [`CivilSecond::new()`](CivilSecond::new)) to the `new()` constructor.
 //! Remaining fields are assigned their minimum valid value. Hours, minutes, and seconds will be set to 0,
 //! month and day will be set to 1, and since there is no minimum valid year, it will be set to 1970.
 //! A default civil time struct will have YMDHMS fields representing "1970-01-01 00:00:00".
@@ -146,7 +146,7 @@
 //! ```
 //!
 //! ### Normalization
-//! Integer arguments passed to the `new()` may be out-of-range, in which
+//! Integer arguments passed to the `new()` constructor may be out-of-range, in which
 //! case they are normalized to produce a valid civil-time struct. This enables
 //! natural arithmetic on `new()` arguments without worrying about the
 //! field's range. Normalization guarantees that there are no invalid
